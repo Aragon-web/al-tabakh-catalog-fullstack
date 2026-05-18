@@ -27,7 +27,7 @@ function request(method: string, path: string, body?: any): Promise<any> {
         if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
           try { resolve(data ? JSON.parse(data) : null) } catch { resolve(null) }
         } else {
-          reject(new Error(`${res.statusCode}: ${data.substring(0, 200)}`))
+          reject(new Error(`${res.statusCode}: ${data.substring(0, 300)}`))
         }
       })
     })
@@ -35,6 +35,22 @@ function request(method: string, path: string, body?: any): Promise<any> {
     if (body) req.write(JSON.stringify(body))
     req.end()
   })
+}
+
+async function upsertCategories(categories: Map<string, { name_en: string; name_ar: string }>) {
+  const entries = Array.from(categories.entries()).map(([id, cat]) => ({
+    id, name_en: cat.name_en || "", name_ar: cat.name_ar || "", sort_order: 0,
+  }))
+  if (entries.length === 0) return
+  await request("POST", "/rest/v1/categories", entries)
+}
+
+async function upsertProducts(products: Record<string, unknown>[]) {
+  const batchSize = 25
+  for (let i = 0; i < products.length; i += batchSize) {
+    const batch = products.slice(i, i + batchSize)
+    await request("POST", "/rest/v1/products", batch)
+  }
 }
 
 async function fetchAPI(): Promise<any> {
@@ -65,7 +81,7 @@ export async function POST(req: Request) {
     if (apiData.categories) {
       for (const cat of apiData.categories) {
         const id = cat.slug || cat.id?.toString() || cat.name_en?.toLowerCase().replace(/\s+/g, "-")
-        if (id) categories.set(id, { name_en: cat.name_en || cat.name, name_ar: cat.name_ar || "" })
+        if (id) categories.set(id, { name_en: cat.name_en || cat.name || cat.name_ar || "Untitled", name_ar: cat.name_ar || cat.name_en || cat.name || "" })
       }
     }
 
@@ -97,19 +113,9 @@ export async function POST(req: Request) {
       })
     }
 
-    // Upsert categories via REST API
-    for (const [id, cat] of categories) {
-      await request("POST", `/rest/v1/categories?id=eq.${id}`, {
-        id, name_en: cat.name_en, name_ar: cat.name_ar, sort_order: 0,
-      })
-    }
-
-    // Upsert products in batches via REST API
-    const batchSize = 10
-    for (let i = 0; i < products.length; i += batchSize) {
-      const batch = products.slice(i, i + batchSize)
-      await request("POST", "/rest/v1/products", batch)
-    }
+    // Upsert categories and products
+    await upsertCategories(categories)
+    await upsertProducts(products)
 
     return NextResponse.json({
       message: "Seed completed",
