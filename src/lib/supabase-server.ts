@@ -1,2 +1,1 @@
-import { supabase } from "./supabase"
-export { supabase as supabaseServer }
+export { fetchProducts, fetchCategories, fetchOrders, getAdminClient } from "./supabase"
