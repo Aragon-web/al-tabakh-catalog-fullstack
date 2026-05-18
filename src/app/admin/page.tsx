@@ -3,7 +3,11 @@
 import { useState, useEffect } from "react"
 import { formatPrice } from "@/lib/utils"
 import type { Product, Category, Order } from "@/lib/types"
-import { Shield, Package, Tags, ShoppingCart, Bell, LogOut, Plus, Edit3, Trash2, Upload, RefreshCw } from "lucide-react"
+import { Shield, Package, Tags, ShoppingCart, RefreshCw, Plus, Edit3, Trash2, LogOut, AlertCircle, X } from "lucide-react"
+
+function generateId() {
+  return "p_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+}
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false)
@@ -17,6 +21,7 @@ export default function AdminPage() {
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [editCategory, setEditCategory] = useState<Category | null>(null)
   const [seeding, setSeeding] = useState(false)
+  const [saveMsg, setSaveMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -63,42 +68,89 @@ export default function AdminPage() {
     localStorage.removeItem("altabakh_admin_token")
   }
 
+  function newProduct() {
+    const catId = categories.length > 0 ? categories[0].id : "all"
+    setEditProduct({
+      id: generateId(), category_id: catId,
+      name_en: "", name_ar: "", desc_en: "", desc_ar: "",
+      weight: "", pieces_per_carton: "", price: 0,
+      image_url: "", is_new: false, is_featured: false,
+      created_at: "", updated_at: "",
+    })
+  }
+
   async function saveProduct() {
     if (!editProduct) return
-    const isNew = !products.find(p => p.id === editProduct.id)
-    const res = isNew
-      ? await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editProduct) })
-      : await fetch(`/api/products/${editProduct.id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editProduct) })
-    if (res.ok) { setEditProduct(null); loadData() }
+    setSaveMsg(null)
+    if (!editProduct.name_en && !editProduct.name_ar) {
+      setSaveMsg({ type: "error", text: "Product name is required" }); return
+    }
+
+    const exists = products.find(p => p.id === editProduct.id)
+    const res = exists
+      ? await fetch(`/api/products/${editProduct.id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editProduct) })
+      : await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editProduct) })
+
+    if (res.ok) {
+      setEditProduct(null)
+      setSaveMsg({ type: "success", text: exists ? "Product updated" : "Product created" })
+      loadData()
+    } else {
+      const err = await res.json()
+      setSaveMsg({ type: "error", text: err.error || "Failed to save" })
+    }
   }
 
   async function deleteProduct(id: string) {
     if (!confirm("Delete this product?")) return
-    await fetch(`/api/products/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
-    loadData()
+    const res = await fetch(`/api/products/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
+    if (res.ok) {
+      setSaveMsg({ type: "success", text: "Product deleted" })
+      loadData()
+    }
+  }
+
+  function newCategory() {
+    setEditCategory({ id: "", name_en: "", name_ar: "", icon: "", sort_order: 0, created_at: "" })
   }
 
   async function saveCategory() {
     if (!editCategory) return
-    const isNew = !categories.find(c => c.id === editCategory.id)
-    const res = isNew
-      ? await fetch("/api/categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(editCategory) })
-      : await fetch(`/api/categories/${editCategory.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(editCategory) })
-    if (res.ok) { setEditCategory(null); loadData() }
+    setSaveMsg(null)
+    if (!editCategory.id || (!editCategory.name_en && !editCategory.name_ar)) {
+      setSaveMsg({ type: "error", text: "Category ID and name are required" }); return
+    }
+
+    const exists = categories.find(c => c.id === editCategory.id)
+    const res = exists
+      ? await fetch(`/api/categories/${editCategory.id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editCategory) })
+      : await fetch("/api/categories", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editCategory) })
+
+    if (res.ok) {
+      setEditCategory(null)
+      setSaveMsg({ type: "success", text: exists ? "Category updated" : "Category created" })
+      loadData()
+    } else {
+      const err = await res.json()
+      setSaveMsg({ type: "error", text: err.error || "Failed to save" })
+    }
   }
 
   async function deleteCategory(id: string) {
-    if (id === "all") return alert("Cannot delete 'All Products'")
+    if (id === "all") return setSaveMsg({ type: "error", text: "Cannot delete 'All Products'" })
     if (!confirm("Delete this category? Products will be moved to 'All Products'")) return
-    await fetch(`/api/categories/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
-    loadData()
+    const res = await fetch(`/api/categories/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
+    if (res.ok) {
+      setSaveMsg({ type: "success", text: "Category deleted" })
+      loadData()
+    }
   }
 
   async function runSeed() {
     setSeeding(true)
     const res = await fetch("/api/seed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) })
     const data = await res.json()
-    alert(data.message || data.error)
+    setSaveMsg({ type: data.error ? "error" : "success", text: data.message || data.error || "Done" })
     setSeeding(false)
     loadData()
   }
@@ -115,9 +167,7 @@ export default function AdminPage() {
           </div>
           {error && <p className="text-sm mb-3" style={{ color: "var(--accent)" }}>{error}</p>}
           <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
+            type="password" value={password} onChange={e => setPassword(e.target.value)}
             placeholder="Password"
             className="w-full px-4 py-2.5 rounded-lg mb-4 outline-none"
             style={{ background: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
@@ -155,6 +205,14 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {saveMsg && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 rounded-lg text-sm shadow-lg"
+          style={{ background: saveMsg.type === "success" ? "#065F46" : "#7F1D1D", color: "#fff" }}>
+          <AlertCircle size={14} /> {saveMsg.text}
+          <button onClick={() => setSaveMsg(null)} className="ml-2"><X size={14} /></button>
+        </div>
+      )}
+
       <div className="p-6 max-w-6xl mx-auto">
         {tab === "dashboard" && (
           <div className="space-y-6">
@@ -184,7 +242,7 @@ export default function AdminPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">Products ({products.length})</h2>
-              <button onClick={() => setEditProduct({ id: "", category_id: "all", name_en: "", name_ar: "", desc_en: "", desc_ar: "", weight: "", pieces_per_carton: "", price: 0, image_url: "", is_new: false, is_featured: false, created_at: "", updated_at: "" })} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm" style={{ background: "var(--accent)", color: "#fff" }}>
+              <button onClick={newProduct} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm" style={{ background: "var(--accent)", color: "#fff" }}>
                 <Plus size={14} /> Add
               </button>
             </div>
@@ -211,7 +269,7 @@ export default function AdminPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">Categories ({categories.length})</h2>
-              <button onClick={() => setEditCategory({ id: "", name_en: "", name_ar: "", icon: "", sort_order: 0, created_at: "" })} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm" style={{ background: "var(--accent)", color: "#fff" }}>
+              <button onClick={newCategory} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm" style={{ background: "var(--accent)", color: "#fff" }}>
                 <Plus size={14} /> Add
               </button>
             </div>
@@ -270,22 +328,31 @@ export default function AdminPage() {
       {editProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
           <div className="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" style={{ background: "var(--surface)" }}>
-            <h3 className="text-lg font-bold mb-4">{editProduct.id ? "Edit Product" : "Add Product"}</h3>
+            <h3 className="text-lg font-bold mb-4">{products.find(p => p.id === editProduct.id) ? "Edit Product" : "Add Product"}</h3>
             <div className="space-y-3">
-              <input placeholder="Product ID" value={editProduct.id} onChange={e => setEditProduct({ ...editProduct, id: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Name (EN)" value={editProduct.name_en} onChange={e => setEditProduct({ ...editProduct, name_en: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                <input placeholder="Name (AR)" value={editProduct.name_ar} onChange={e => setEditProduct({ ...editProduct, name_ar: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder="Name (EN) *" value={editProduct.name_en} onChange={e => setEditProduct({ ...editProduct, name_en: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder="Name (AR) *" value={editProduct.name_ar} onChange={e => setEditProduct({ ...editProduct, name_ar: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Weight" value={editProduct.weight} onChange={e => setEditProduct({ ...editProduct, weight: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder="Weight (e.g. 500g)" value={editProduct.weight} onChange={e => setEditProduct({ ...editProduct, weight: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
                 <input placeholder="Pieces/Carton" value={editProduct.pieces_per_carton} onChange={e => setEditProduct({ ...editProduct, pieces_per_carton: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
-              <input placeholder="Price" type="number" value={editProduct.price} onChange={e => setEditProduct({ ...editProduct, price: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              <input placeholder="Price" type="number" step="0.001" value={editProduct.price} onChange={e => setEditProduct({ ...editProduct, price: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <input placeholder="Image URL" value={editProduct.image_url} onChange={e => setEditProduct({ ...editProduct, image_url: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <select value={editProduct.category_id || "all"} onChange={e => setEditProduct({ ...editProduct, category_id: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name_en}</option>)}
               </select>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={editProduct.is_new} onChange={e => setEditProduct({ ...editProduct, is_new: e.target.checked })} />
+                  {editProduct.is_new ? "NEW badge" : "No badge"}
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={editProduct.is_featured} onChange={e => setEditProduct({ ...editProduct, is_featured: e.target.checked })} />
+                  Featured
+                </label>
+              </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setEditProduct(null)} className="flex-1 py-2 rounded-lg text-sm" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>Cancel</button>
@@ -299,12 +366,12 @@ export default function AdminPage() {
       {editCategory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
           <div className="rounded-2xl w-full max-w-md p-6" style={{ background: "var(--surface)" }}>
-            <h3 className="text-lg font-bold mb-4">{editCategory.id ? "Edit Category" : "Add Category"}</h3>
+            <h3 className="text-lg font-bold mb-4">{categories.find(c => c.id === editCategory.id) ? "Edit Category" : "Add Category"}</h3>
             <div className="space-y-3">
-              <input placeholder="Category ID (slug)" value={editCategory.id} onChange={e => setEditCategory({ ...editCategory, id: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              <input placeholder="Category ID (slug) *" value={editCategory.id} onChange={e => setEditCategory({ ...editCategory, id: e.target.value })} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Name (EN)" value={editCategory.name_en} onChange={e => setEditCategory({ ...editCategory, name_en: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                <input placeholder="Name (AR)" value={editCategory.name_ar} onChange={e => setEditCategory({ ...editCategory, name_ar: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder="Name (EN) *" value={editCategory.name_en} onChange={e => setEditCategory({ ...editCategory, name_en: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder="Name (AR) *" value={editCategory.name_ar} onChange={e => setEditCategory({ ...editCategory, name_ar: e.target.value })} className="px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
             </div>
             <div className="flex gap-3 mt-6">

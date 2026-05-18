@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic"
 export default async function HomePage() {
   const headersList = await headers()
   const host = headersList.get("host") || "localhost:3000"
-  const protocol = host.includes("localhost") ? "http" : "https"
-  const baseUrl = `${protocol}://${host}`
+  const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https"
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${protocol}://${host}`
 
   let products: Product[] = []
   let categories: Category[] = []

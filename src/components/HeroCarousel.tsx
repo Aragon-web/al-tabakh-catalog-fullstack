@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useStore } from "@/lib/store"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const slides = [
@@ -22,19 +23,8 @@ const slides = [
 ]
 
 export function HeroCarousel() {
+  const { lang } = useStore()
   const [current, setCurrent] = useState(0)
-  const [lang, setLang] = useState<"en" | "ar">("ar")
-
-  useEffect(() => {
-    const saved = localStorage.getItem("altabakh_lang") as "en" | "ar" | null
-    if (saved) setLang(saved)
-    const listener = () => {
-      const l = localStorage.getItem("altabakh_lang") as "en" | "ar" | null
-      if (l) setLang(l)
-    }
-    window.addEventListener("storage", listener)
-    return () => window.removeEventListener("storage", listener)
-  }, [])
 
   const next = useCallback(() => setCurrent(c => (c + 1) % slides.length), [])
   const prev = useCallback(() => setCurrent(c => (c - 1 + slides.length) % slides.length), [])

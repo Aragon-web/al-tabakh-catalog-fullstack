@@ -4,9 +4,11 @@ import { useStore } from "@/lib/store"
 import { X, Plus, Minus, Trash2 } from "lucide-react"
 import { useEffect } from "react"
 import { formatPrice, getWhatsAppUrl } from "@/lib/utils"
+import { useSaveOrder } from "@/lib/use-save-order"
 
 export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { cart, lang, removeFromCart, updateQuantity, clearCart, cartTotal } = useStore()
+  const saveOrder = useSaveOrder()
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden"
@@ -29,6 +31,10 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
 
   const phone = "+9647733310100"
   const waUrl = getWhatsAppUrl(phone, `New Order:\n${generateOrderMessage()}`)
+
+  function handleCheckout() {
+    saveOrder(cart, cartTotal)
+  }
 
   if (!open) return null
 
@@ -85,6 +91,7 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
                 href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={handleCheckout}
                 className="flex-1 py-2.5 rounded-lg text-sm text-center font-medium transition-opacity hover:opacity-90"
                 style={{ background: "#25D366", color: "#fff" }}
               >

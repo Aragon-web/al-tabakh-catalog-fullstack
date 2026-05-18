@@ -5,11 +5,13 @@ import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { useStore } from "@/lib/store"
 import { formatPrice } from "@/lib/utils"
+import { useSaveOrder } from "@/lib/use-save-order"
 import { Trash2, Plus, Minus } from "lucide-react"
 import Link from "next/link"
 
 export function CartClient() {
   const { cart, lang, updateQuantity, cartTotal, clearCart } = useStore()
+  const saveOrder = useSaveOrder()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -30,6 +32,10 @@ export function CartClient() {
 
   const phone = "+9647733310100"
   const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(`New Order:\n${generateOrderMessage()}`)}`
+
+  function handleCheckout() {
+    saveOrder(cart, cartTotal)
+  }
 
   return (
     <>
@@ -76,7 +82,14 @@ export function CartClient() {
               <button onClick={clearCart} className="px-6 py-2.5 rounded-lg text-sm" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>
                 {t.clear}
               </button>
-              <a href={waUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-6 py-2.5 rounded-lg text-sm font-medium" style={{ background: "#25D366", color: "#fff" }}>
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleCheckout}
+                className="flex-1 text-center px-6 py-2.5 rounded-lg text-sm font-medium"
+                style={{ background: "#25D366", color: "#fff" }}
+              >
                 {t.order}
               </a>
             </div>

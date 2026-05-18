@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
+import { verifyAuth } from "@/lib/api-auth"
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = verifyAuth(req)
+  if (auth !== true) return auth
+
   const { id } = await params
   const body = await req.json()
   const { data, error } = await supabaseAdmin.from("products").update(body).eq("id", id).select().single()
@@ -10,6 +14,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = verifyAuth(req)
+  if (auth !== true) return auth
+
   const { id } = await params
   const { error } = await supabaseAdmin.from("products").delete().eq("id", id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

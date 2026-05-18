@@ -88,31 +88,33 @@ export function Header() {
           </div>
         )}
 
-        <div className="max-w-7xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-thin">
-          <button
-            onClick={() => setSelectedCategory("all")}
-            className="px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors"
-            style={{
-              background: selectedCategory === "all" ? "var(--accent)" : "var(--surface-2)",
-              color: selectedCategory === "all" ? "#fff" : "var(--text-secondary)"
-            }}
-          >
-            {t.all}
-          </button>
-          {categories.filter(c => c.id !== "all").map(cat => (
+        {categories.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-thin">
             <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className="px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors"
+              onClick={() => setSelectedCategory("all")}
+              className="px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors flex-shrink-0"
               style={{
-                background: selectedCategory === cat.id ? "var(--accent)" : "var(--surface-2)",
-                color: selectedCategory === cat.id ? "#fff" : "var(--text-secondary)"
+                background: selectedCategory === "all" ? "var(--accent)" : "var(--surface-2)",
+                color: selectedCategory === "all" ? "#fff" : "var(--text-secondary)"
               }}
             >
-              {lang === "en" ? cat.name_en : cat.name_ar}
+              {t.all}
             </button>
-          ))}
-        </div>
+            {categories.filter(c => c.id !== "all").map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className="px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors flex-shrink-0"
+                style={{
+                  background: selectedCategory === cat.id ? "var(--accent)" : "var(--surface-2)",
+                  color: selectedCategory === cat.id ? "#fff" : "var(--text-secondary)"
+                }}
+              >
+                {lang === "en" ? cat.name_en : cat.name_ar}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />

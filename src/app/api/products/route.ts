@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
+import { verifyAuth } from "@/lib/api-auth"
 
 export async function GET() {
   if (!supabaseAdmin) return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
@@ -9,6 +10,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = verifyAuth(req)
+  if (auth !== true) return auth
+
   if (!supabaseAdmin) return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
   const body = await req.json()
   const { data, error } = await supabaseAdmin.from("products").insert(body).select().single()
