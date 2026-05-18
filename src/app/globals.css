@@ -8,7 +8,7 @@
   --surface: #16161E;
   --surface-2: #1E1E2A;
   --surface-3: #262635;
-  --navbar: rgba(22, 22, 30, 0.75);
+  --navbar: rgba(22, 22, 30, 0.80);
   --text-primary: #F0F0F5;
   --text-secondary: rgba(240, 240, 245, 0.70);
   --text-muted: rgba(240, 240, 245, 0.45);
@@ -27,10 +27,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   background: var(--bg);
   color: var(--text-primary);
   font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+  overscroll-behavior: none;
 }
 
 html.rtl {
@@ -38,10 +43,15 @@ html.rtl {
 }
 
 @layer utilities {
-  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
   .text-gradient { background: linear-gradient(135deg, var(--accent), #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-top { padding-top: env(safe-area-inset-top, 0px); }
+  .min-touch { min-height: 44px; min-width: 44px; }
 }
 
 @keyframes fade-in {
@@ -60,5 +70,5 @@ html.rtl {
 }
 
 .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-.animate-slide-in { animation: slide-in-right 0.3s ease-out forwards; }
-.animate-slide-out { animation: slide-out-right 0.3s ease-out forwards; }
+.animate-slide-in { animation: slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-out { animation: slide-out-right 0.25s ease-in forwards; }
