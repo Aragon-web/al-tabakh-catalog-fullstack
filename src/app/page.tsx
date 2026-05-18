@@ -1,30 +1,33 @@
-import { supabaseServer } from "@/lib/supabase-server"
+"use client"
+
+import { useEffect, useState } from "react"
 import { StoreProvider } from "@/lib/store"
 import { ClientPage } from "./client-page"
 import type { Product, Category } from "@/lib/types"
 
-export const dynamic = "force-dynamic"
+export default function HomePage() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
 
-async function getProducts(): Promise<Product[]> {
-  try {
-    const { data } = await supabaseServer.from("products").select("*").order("created_at", { ascending: false })
-    return (data as Product[]) || []
-  } catch {
-    return []
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/products").then(r => r.json()),
+      fetch("/api/categories").then(r => r.json()),
+    ]).then(([p, c]) => {
+      setProducts(p)
+      setCategories(c)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
+        <div className="animate-spin w-8 h-8 rounded-full" style={{ border: "2px solid var(--border)", borderTopColor: "var(--accent)" }} />
+      </div>
+    )
   }
-}
-
-async function getCategories(): Promise<Category[]> {
-  try {
-    const { data } = await supabaseServer.from("categories").select("*").order("sort_order", { ascending: true })
-    return (data as Category[]) || []
-  } catch {
-    return []
-  }
-}
-
-export default async function HomePage() {
-  const [products, categories] = await Promise.all([getProducts(), getCategories()])
 
   return (
     <StoreProvider products={products} categories={categories}>
