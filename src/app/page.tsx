@@ -1,32 +1,28 @@
-"use client"
-
-import { useEffect, useState } from "react"
+import { headers } from "next/headers"
 import { StoreProvider } from "@/lib/store"
 import { ClientPage } from "./client-page"
 import type { Product, Category } from "@/lib/types"
 
-export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
+export const dynamic = "force-dynamic"
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/products").then(r => r.json()),
-      fetch("/api/categories").then(r => r.json()),
-    ]).then(([p, c]) => {
-      setProducts(p)
-      setCategories(c)
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [])
+export default async function HomePage() {
+  const headersList = await headers()
+  const host = headersList.get("host") || "localhost:3000"
+  const protocol = host.includes("localhost") ? "http" : "https"
+  const baseUrl = `${protocol}://${host}`
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
-        <div className="animate-spin w-8 h-8 rounded-full" style={{ border: "2px solid var(--border)", borderTopColor: "var(--accent)" }} />
-      </div>
-    )
+  let products: Product[] = []
+  let categories: Category[] = []
+
+  try {
+    const [pRes, cRes] = await Promise.all([
+      fetch(`${baseUrl}/api/products`, { next: { revalidate: 0 } }),
+      fetch(`${baseUrl}/api/categories`, { next: { revalidate: 0 } }),
+    ])
+    if (pRes.ok) products = await pRes.json()
+    if (cRes.ok) categories = await cRes.json()
+  } catch {
+    // fallback to empty
   }
 
   return (
