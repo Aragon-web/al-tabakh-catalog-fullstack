@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
 import { formatPrice } from "@/lib/utils"
 import type { Product, Category, Order } from "@/lib/types"
 import { Shield, Package, Tags, ShoppingCart, Bell, LogOut, Plus, Edit3, Trash2, Upload, RefreshCw } from "lucide-react"
@@ -34,14 +33,14 @@ export default function AdminPage() {
   }, [authenticated])
 
   async function loadData() {
-    const [p, c, o] = await Promise.all([
-      supabase.from("products").select("*").order("created_at", { ascending: false }),
-      supabase.from("categories").select("*").order("sort_order", { ascending: true }),
-      supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(50),
-    ])
-    if (p.data) setProducts(p.data)
-    if (c.data) setCategories(c.data)
-    if (o.data) setOrders(o.data)
+    try {
+      const [p, c] = await Promise.all([
+        fetch("/api/products").then(r => r.json()),
+        fetch("/api/categories").then(r => r.json()),
+      ])
+      if (Array.isArray(p)) setProducts(p)
+      if (Array.isArray(c)) setCategories(c)
+    } catch {}
   }
 
   async function handleLogin(e: React.FormEvent) {
