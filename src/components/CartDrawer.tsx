@@ -30,13 +30,13 @@ export function CartDrawer({ open, onClose }: { open: boolean; onClose: () => vo
   const phone = "+9647733310100"
   const waUrl = getWhatsAppUrl(phone, `New Order:\n${generateOrderMessage()}`)
 
+  if (!open) return null
+
   return (
     <>
-      {open && (
-        <div className="fixed inset-0 z-[60]" onClick={onClose} style={{ background: "rgba(0,0,0,0.5)" }} />
-      )}
+      <div className="fixed inset-0 z-[60]" onClick={onClose} style={{ background: "rgba(0,0,0,0.5)" }} />
       <div
-        className="fixed top-0 right-0 h-full w-full max-w-md z-[70] shadow-2xl animate-slide-in flex flex-col"
+        className="fixed top-0 right-0 h-full w-[90vw] sm:max-w-md z-[70] shadow-2xl animate-slide-in flex flex-col"
         style={{ background: "var(--surface)" }}
       >
         <div className="flex items-center justify-between p-4" style={{ borderBottom: "1px solid var(--border)" }}>
