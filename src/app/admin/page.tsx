@@ -23,7 +23,9 @@ export default function AdminPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem("altabakh_admin_token")
+    const savedPwd = localStorage.getItem("altabakh_admin_password")
     if (saved) { setToken(saved); setAuthenticated(true) }
+    if (savedPwd) setPassword(savedPwd)
   }, [])
 
   useEffect(() => {
@@ -51,6 +53,7 @@ export default function AdminPage() {
       setToken(data.token)
       setAuthenticated(true)
       localStorage.setItem("altabakh_admin_token", data.token)
+      localStorage.setItem("altabakh_admin_password", password)
     } else {
       setError("Invalid password")
     }
