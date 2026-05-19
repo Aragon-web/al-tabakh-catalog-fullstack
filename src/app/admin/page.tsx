@@ -112,7 +112,7 @@ export default function AdminPage() {
   }
 
   function newCategory() {
-    setEditCategory({ id: "", name_en: "", name_ar: "", icon: "", sort_order: 0, created_at: "" })
+    setEditCategory({ id: "", name_en: "", name_ar: "", icon: "", image_url: "", sort_order: 0, created_at: "" })
   }
 
   async function saveCategory() {
@@ -396,6 +396,7 @@ export default function AdminPage() {
                 <input placeholder="Name (EN) *" value={editCategory.name_en} onChange={e => setEditCategory({ ...editCategory, name_en: e.target.value })} className="px-3 py-2.5 sm:py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
                 <input placeholder="Name (AR) *" value={editCategory.name_ar} onChange={e => setEditCategory({ ...editCategory, name_ar: e.target.value })} className="px-3 py-2.5 sm:py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
+              <input placeholder="Image URL (optional)" value={editCategory.image_url || ""} onChange={e => setEditCategory({ ...editCategory, image_url: e.target.value })} className="w-full px-3 py-2.5 sm:py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             </div>
             <div className="flex gap-3 mt-5 sm:mt-6">
               <button onClick={() => setEditCategory(null)} className="flex-1 py-3 sm:py-2 rounded-lg text-sm min-touch flex items-center justify-center" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>Cancel</button>

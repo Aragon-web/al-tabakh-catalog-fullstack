@@ -44,18 +44,12 @@ export function CategoryCarousel() {
   const visible = categories.filter(c => c.id !== "all")
   if (visible.length === 0) return null
 
-  const catImage = (catId: string) => {
-    if (failedImages.has(catId)) return ""
-    const p = products.find(pr => pr.category_id === catId && pr.image_url)
-    return p?.image_url || ""
-  }
-
   const catCount = (catId: string) => products.filter(p => p.category_id === catId).length
   const t = (e: string, a: string) => lang === "en" ? e : a
 
-  const Card = ({ id, name, count, isAll }: { id: string; name: string; count: number; isAll: boolean }) => {
+  const Card = ({ id, name, count, imageUrl, isAll }: { id: string; name: string; count: number; imageUrl: string; isAll: boolean }) => {
     const active = selectedCategory === id
-    const img = isAll ? "" : catImage(id)
+    const showImg = !isAll && imageUrl && !failedImages.has(id)
     const g = gradients[isAll ? 0 : visible.findIndex(c => c.id === id) % gradients.length]
 
     return (
@@ -70,9 +64,9 @@ export function CategoryCarousel() {
         }}
       >
         <div className="aspect-[4/3] relative overflow-hidden" style={{ background: "var(--surface-2)" }}>
-          {img ? (
+          {showImg ? (
             <img
-              src={img}
+              src={imageUrl}
               alt={name}
               className="w-full h-full object-cover"
               loading="lazy"
@@ -119,9 +113,9 @@ export function CategoryCarousel() {
       <div ref={scrollRef}
         className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth py-1"
         style={{ scrollSnapType: "x proximity" }}>
-        <Card id="all" name={t("All Products", "جميع المنتجات")} count={products.length} isAll />
+        <Card id="all" name={t("All Products", "جميع المنتجات")} count={products.length} imageUrl="" isAll />
         {visible.map(c => (
-          <Card key={c.id} id={c.id} name={t(c.name_en, c.name_ar)} count={catCount(c.id)} isAll={false} />
+          <Card key={c.id} id={c.id} name={t(c.name_en, c.name_ar)} count={catCount(c.id)} imageUrl={c.image_url || ""} isAll={false} />
         ))}
       </div>
 

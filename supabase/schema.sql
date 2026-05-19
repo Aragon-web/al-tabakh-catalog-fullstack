@@ -5,6 +5,7 @@ CREATE TABLE categories (
   name_en TEXT NOT NULL,
   name_ar TEXT NOT NULL,
   icon TEXT DEFAULT '',
+  image_url TEXT DEFAULT '',
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
