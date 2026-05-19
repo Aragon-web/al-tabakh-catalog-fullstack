@@ -4,11 +4,21 @@ import { useRef, useState, useEffect } from "react"
 import { useStore } from "@/lib/store"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
+const gradients = [
+  "from-[#D11D1D] to-[#ff6b6b]",
+  "from-[#E93C3C] to-[#ff9a44]",
+  "from-[#A51414] to-[#D11D1D]",
+  "from-[#ff6b6b] to-[#ffd93d]",
+  "from-[#D11D1D] to-[#A51414]",
+  "from-[#ff9a44] to-[#ff6b6b]",
+]
+
 export function CategoryCarousel() {
   const { lang, categories, selectedCategory, setSelectedCategory, products } = useStore()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
   const checkScroll = () => {
     const el = scrollRef.current
@@ -28,79 +38,90 @@ export function CategoryCarousel() {
   const scroll = (dir: "left" | "right") => {
     const el = scrollRef.current
     if (!el) return
-    const amount = el.clientWidth * 0.6
-    el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" })
+    el.scrollBy({ left: dir === "left" ? -280 : 280, behavior: "smooth" })
   }
 
   const visible = categories.filter(c => c.id !== "all")
   if (visible.length === 0) return null
 
-  const catProducts = (catId: string) => products.filter(p => p.category_id === catId).length
+  const catImage = (catId: string) => {
+    if (failedImages.has(catId)) return ""
+    const p = products.find(pr => pr.category_id === catId && pr.image_url)
+    return p?.image_url || ""
+  }
 
-  const catLang = (cat: typeof visible[0]) => lang === "en" ? cat.name_en : cat.name_ar
+  const catCount = (catId: string) => products.filter(p => p.category_id === catId).length
+  const t = (e: string, a: string) => lang === "en" ? e : a
+
+  const Card = ({ id, name, count, isAll }: { id: string; name: string; count: number; isAll: boolean }) => {
+    const active = selectedCategory === id
+    const img = isAll ? "" : catImage(id)
+    const g = gradients[isAll ? 0 : visible.findIndex(c => c.id === id) % gradients.length]
+
+    return (
+      <button
+        onClick={() => setSelectedCategory(id)}
+        className="flex-shrink-0 rounded-xl overflow-hidden transition-all duration-150 active:scale-95"
+        style={{
+          width: 140,
+          scrollSnapAlign: "start",
+          border: "2px solid",
+          borderColor: active ? "var(--accent)" : "var(--border)",
+        }}
+      >
+        <div className="aspect-[4/3] relative overflow-hidden" style={{ background: "var(--surface-2)" }}>
+          {img ? (
+            <img
+              src={img}
+              alt={name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={() => setFailedImages(prev => new Set(prev).add(id))}
+            />
+          ) : (
+            <div className={`w-full h-full bg-gradient-to-br ${g} flex items-center justify-center`}>
+              <span className="text-white text-2xl font-bold opacity-50">
+                {name.charAt(0)}
+              </span>
+            </div>
+          )}
+          {active && <div className="absolute inset-0" style={{ background: "rgba(209,29,29,0.2)" }} />}
+        </div>
+        <div className="px-2.5 py-2 text-left" style={{ background: active ? "var(--accent)" : "var(--surface)" }}>
+          <p className="text-xs font-medium truncate" style={{ color: active ? "#fff" : "var(--text-primary)" }}>
+            {name}
+          </p>
+          <p className="text-[10px] mt-0.5" style={{ color: active ? "rgba(255,255,255,0.7)" : "var(--text-muted)" }}>
+            {count} {t("items", "منتج")}
+          </p>
+        </div>
+      </button>
+    )
+  }
 
   return (
     <section className="relative">
       {canScrollLeft && (
-        <button
-          onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full shadow-lg hidden sm:flex items-center justify-center"
-          style={{ background: "var(--surface)", color: "var(--text-secondary)" }}
-        >
-          <ChevronLeft size={18} />
+        <button onClick={() => scroll("left")}
+          className="absolute -left-1 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full shadow-lg hidden sm:flex items-center justify-center"
+          style={{ background: "var(--surface)", color: "var(--text-secondary)" }}>
+          <ChevronLeft size={20} />
         </button>
       )}
       {canScrollRight && (
-        <button
-          onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full shadow-lg hidden sm:flex items-center justify-center"
-          style={{ background: "var(--surface)", color: "var(--text-secondary)" }}
-        >
-          <ChevronRight size={18} />
+        <button onClick={() => scroll("right")}
+          className="absolute -right-1 top-1/2 -translate-y-1/2 z-10 p-1.5 rounded-full shadow-lg hidden sm:flex items-center justify-center"
+          style={{ background: "var(--surface)", color: "var(--text-secondary)" }}>
+          <ChevronRight size={20} />
         </button>
       )}
 
-      <div
-        ref={scrollRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth py-1 px-0.5"
-        style={{ scrollSnapType: "x proximity" }}
-      >
-        <button
-          onClick={() => setSelectedCategory("all")}
-          className="flex flex-col items-center justify-center gap-1 px-5 py-3 rounded-xl flex-shrink-0 transition-all duration-150 active:scale-95"
-          style={{
-            background: selectedCategory === "all" ? "var(--accent)" : "var(--surface)",
-            border: "1px solid",
-            borderColor: selectedCategory === "all" ? "var(--accent)" : "var(--border)",
-            color: selectedCategory === "all" ? "#fff" : "var(--text-secondary)",
-            minWidth: "100px",
-            scrollSnapAlign: "start",
-          }}
-        >
-          <span className="text-xs font-medium whitespace-nowrap">
-            {lang === "en" ? "All" : "الكل"}
-          </span>
-          <span className="text-[10px] opacity-70">{products.length}</span>
-        </button>
-        {visible.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className="flex flex-col items-center justify-center gap-1 px-5 py-3 rounded-xl flex-shrink-0 transition-all duration-150 active:scale-95"
-            style={{
-              background: selectedCategory === cat.id ? "var(--accent)" : "var(--surface)",
-              border: "1px solid",
-              borderColor: selectedCategory === cat.id ? "var(--accent)" : "var(--border)",
-              color: selectedCategory === cat.id ? "#fff" : "var(--text-secondary)",
-              minWidth: "100px",
-              scrollSnapAlign: "start",
-            }}
-          >
-            <span className="text-xs font-medium truncate max-w-[100px]">
-              {catLang(cat)}
-            </span>
-            <span className="text-[10px] opacity-70">{catProducts(cat.id)}</span>
-          </button>
+      <div ref={scrollRef}
+        className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth py-1"
+        style={{ scrollSnapType: "x proximity" }}>
+        <Card id="all" name={t("All Products", "جميع المنتجات")} count={products.length} isAll />
+        {visible.map(c => (
+          <Card key={c.id} id={c.id} name={t(c.name_en, c.name_ar)} count={catCount(c.id)} isAll={false} />
         ))}
       </div>
 
