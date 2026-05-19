@@ -2,6 +2,7 @@
 
 import { Header } from "@/components/Header"
 import { HeroCarousel } from "@/components/HeroCarousel"
+import { CategoryCarousel } from "@/components/CategoryCarousel"
 import { ProductCard } from "@/components/ProductCard"
 import { Footer } from "@/components/Footer"
 import { useStore } from "@/lib/store"
@@ -20,7 +21,11 @@ export function ClientPage() {
       <main className="flex-1 max-w-7xl mx-auto px-3 sm:px-4 pt-2">
         <HeroCarousel />
 
-        <section className="mt-4 sm:mt-8">
+        <div className="mt-4 sm:mt-6">
+          <CategoryCarousel />
+        </div>
+
+        <section className="mt-4 sm:mt-6">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h2 className="text-base sm:text-xl font-bold">{t.products}</h2>
             <span className="text-[10px] sm:text-sm" style={{ color: "var(--text-muted)" }}>

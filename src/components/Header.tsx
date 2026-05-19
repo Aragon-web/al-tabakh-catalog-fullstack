@@ -7,13 +7,13 @@ import Link from "next/link"
 import { CartDrawer } from "./CartDrawer"
 
 export function Header() {
-  const { lang, setLang, cartCount, search, setSearch, categories, selectedCategory, setSelectedCategory } = useStore()
+  const { lang, setLang, cartCount, search, setSearch } = useStore()
   const [cartOpen, setCartOpen] = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
 
   const t = {
-    en: { search: "Search products...", cart: "Cart", orders: "Orders", admin: "Admin", all: "All Products" },
-    ar: { search: "ابحث عن المنتجات...", cart: "السلة", orders: "الطلبات", admin: "لوحة التحكم", all: "جميع المنتجات" },
+    en: { search: "Search products...", cart: "Cart", orders: "Orders", admin: "Admin" },
+    ar: { search: "ابحث عن المنتجات...", cart: "السلة", orders: "الطلبات", admin: "لوحة التحكم" },
   }[lang]
 
   return (
@@ -63,34 +63,6 @@ export function Header() {
             {mobileMenu ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
-
-        {categories.length > 0 && (
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 pb-2.5 flex gap-1.5 overflow-x-auto scrollbar-hide">
-            <button
-              onClick={() => setSelectedCategory("all")}
-              className="px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm whitespace-nowrap transition-colors flex-shrink-0"
-              style={{
-                background: selectedCategory === "all" ? "var(--accent)" : "var(--surface-2)",
-                color: selectedCategory === "all" ? "#fff" : "var(--text-secondary)"
-              }}
-            >
-              {t.all}
-            </button>
-            {categories.filter(c => c.id !== "all").map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className="px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm whitespace-nowrap transition-colors flex-shrink-0"
-                style={{
-                  background: selectedCategory === cat.id ? "var(--accent)" : "var(--surface-2)",
-                  color: selectedCategory === cat.id ? "#fff" : "var(--text-secondary)"
-                }}
-              >
-                {lang === "en" ? cat.name_en : cat.name_ar}
-              </button>
-            ))}
-          </div>
-        )}
 
         <div className="md:hidden px-3 sm:px-4 pb-2.5">
           <input
