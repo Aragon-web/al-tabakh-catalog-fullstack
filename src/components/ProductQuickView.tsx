@@ -7,9 +7,9 @@ import { useState } from "react"
 import type { Product } from "@/lib/types"
 
 export function ProductQuickView({ product, onClose }: { product: Product; onClose: () => void }) {
-  const { lang, addToCart, cart, removeFromCart } = useStore()
+  const { lang, addToCart, cartIds, removeFromCart } = useStore()
   const [imgError, setImgError] = useState(false)
-  const inCart = cart.some(i => i.product_id === product.id)
+  const inCart = cartIds.has(product.id)
 
   const name = lang === "en" ? product.name_en : product.name_ar
   const desc = lang === "en" ? product.desc_en : product.desc_ar

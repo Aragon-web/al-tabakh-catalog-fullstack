@@ -8,10 +8,10 @@ import { ProductQuickView } from "./ProductQuickView"
 import type { Product } from "@/lib/types"
 
 export function ProductCard({ product }: { product: Product }) {
-  const { lang, addToCart, cart } = useStore()
+  const { lang, addToCart, cartIds } = useStore()
   const [imgError, setImgError] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
-  const inCart = cart.some(i => i.product_id === product.id)
+  const inCart = cartIds.has(product.id)
 
   const name = lang === "en" ? product.name_en : product.name_ar
   const desc = lang === "en" ? product.desc_en : product.desc_ar
@@ -19,7 +19,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <>
       <div
-        className="group relative rounded-lg sm:rounded-xl overflow-hidden transition-all duration-300 active:scale-[0.98] sm:hover:scale-[1.02] sm:hover:shadow-xl animate-fade-in"
+        className="group relative rounded-lg sm:rounded-xl overflow-hidden transition-all duration-150 active:scale-[0.97] sm:hover:scale-[1.02] sm:hover:shadow-xl"
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
       >
         {product.is_new && (

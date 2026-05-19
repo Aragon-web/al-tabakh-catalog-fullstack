@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode } from "react"
 import type { Product, CartItem, Category } from "./types"
 
 interface StoreState {
@@ -19,6 +19,7 @@ interface StoreState {
   clearCart: () => void
   cartTotal: number
   cartCount: number
+  cartIds: Set<string>
   filteredProducts: Product[]
 }
 
@@ -70,25 +71,28 @@ export function StoreProvider({ children, products, categories }: { children: Re
 
   const clearCart = useCallback(() => setCart([]), [])
 
-  const cartTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0)
-  const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0)
+  const cartTotal = useMemo(() => cart.reduce((sum, i) => sum + i.price * i.quantity, 0), [cart])
+  const cartCount = useMemo(() => cart.reduce((sum, i) => sum + i.quantity, 0), [cart])
+  const cartIds = useMemo(() => new Set(cart.map(i => i.product_id)), [cart])
 
-  const filteredProducts = products.filter(p => {
-    if (selectedCategory !== "all" && p.category_id !== selectedCategory) return false
-    if (search) {
-      const q = search.toLowerCase()
-      const matches = p.name_en.toLowerCase().includes(q) || p.name_ar.includes(q)
-      if (!matches) return false
-    }
-    return true
-  })
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      if (selectedCategory !== "all" && p.category_id !== selectedCategory) return false
+      if (search) {
+        const q = search.toLowerCase()
+        const matches = p.name_en.toLowerCase().includes(q) || p.name_ar.includes(q)
+        if (!matches) return false
+      }
+      return true
+    })
+  }, [products, search, selectedCategory])
 
   return (
     <StoreContext.Provider value={{
       products, categories, cart, lang, search, selectedCategory,
       setLang, setSearch, setSelectedCategory,
       addToCart, removeFromCart, updateQuantity, clearCart,
-      cartTotal, cartCount, filteredProducts
+      cartTotal, cartCount, cartIds, filteredProducts
     }}>
       {children}
     </StoreContext.Provider>

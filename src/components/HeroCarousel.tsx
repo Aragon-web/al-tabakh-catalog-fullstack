@@ -45,7 +45,7 @@ export function HeroCarousel() {
         <h1 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-1 sm:mb-3 animate-fade-in" key={current}>
           {lang === "en" ? slide.en.title : slide.ar.title}
         </h1>
-        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/80 animate-fade-in max-w-[90%] sm:max-w-none" style={{ animationDelay: "0.1s" }}>
+        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/80 animate-fade-in max-w-[90%] sm:max-w-none">
           {lang === "en" ? slide.en.subtitle : slide.ar.subtitle}
         </p>
       </div>
