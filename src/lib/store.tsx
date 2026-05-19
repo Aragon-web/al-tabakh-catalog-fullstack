@@ -1,7 +1,8 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from "react"
 import type { Product, CartItem, Category } from "./types"
+import { STORAGE_KEYS } from "./constants"
 
 interface StoreState {
   products: Product[]
@@ -28,27 +29,42 @@ const StoreContext = createContext<StoreState | null>(null)
 export function StoreProvider({ children, products, categories }: { children: ReactNode; products: Product[]; categories: Category[] }) {
   const [cart, setCart] = useState<CartItem[]>([])
   const [lang, setLang] = useState<"en" | "ar">("ar")
-  const [search, setSearch] = useState("")
+  const [searchInput, setSearchInput] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
-    const saved = localStorage.getItem("altabakh_cart")
-    if (saved) {
-      try { setCart(JSON.parse(saved)) } catch { /* ignore */ }
-    }
-    const savedLang = localStorage.getItem("altabakh_lang") as "en" | "ar" | null
-    if (savedLang) setLang(savedLang)
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.CART)
+      if (saved) setCart(JSON.parse(saved))
+    } catch { /* ignore corrupt data */ }
+    try {
+      const savedLang = localStorage.getItem(STORAGE_KEYS.LANG) as "en" | "ar" | null
+      if (savedLang) setLang(savedLang)
+    } catch { /* ignore */ }
   }, [])
 
   useEffect(() => {
-    localStorage.setItem("altabakh_cart", JSON.stringify(cart))
+    try { localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart)) } catch { /* ignore */ }
   }, [cart])
 
   useEffect(() => {
-    localStorage.setItem("altabakh_lang", lang)
+    try { localStorage.setItem(STORAGE_KEYS.LANG, lang) } catch { /* ignore */ }
     document.documentElement.classList.toggle("rtl", lang === "ar")
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr"
   }, [lang])
+
+  // Debounce search input
+  const setSearch = useCallback((val: string) => {
+    setSearchInput(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setDebouncedSearch(val), 250)
+  }, [])
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [])
 
   const addToCart = useCallback((item: CartItem) => {
     setCart(prev => {
@@ -78,18 +94,18 @@ export function StoreProvider({ children, products, categories }: { children: Re
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       if (selectedCategory !== "all" && p.category_id !== selectedCategory) return false
-      if (search) {
-        const q = search.toLowerCase()
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase()
         const matches = p.name_en.toLowerCase().includes(q) || p.name_ar.includes(q)
         if (!matches) return false
       }
       return true
     })
-  }, [products, search, selectedCategory])
+  }, [products, debouncedSearch, selectedCategory])
 
   return (
     <StoreContext.Provider value={{
-      products, categories, cart, lang, search, selectedCategory,
+      products, categories, cart, lang, search: searchInput, selectedCategory,
       setLang, setSearch, setSelectedCategory,
       addToCart, removeFromCart, updateQuantity, clearCart,
       cartTotal, cartCount, cartIds, filteredProducts

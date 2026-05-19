@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { useStore } from "@/lib/store"
-import { formatPrice } from "@/lib/utils"
+import { formatPrice, getWhatsAppUrl } from "@/lib/utils"
 import { useSaveOrder } from "@/lib/use-save-order"
 import { Trash2, Plus, Minus } from "lucide-react"
 import Link from "next/link"
@@ -22,6 +22,8 @@ export function CartClient() {
     ar: { title: "سلة التسوق", empty: "سلتك فارغة", total: "المجموع", clear: "مسح السلة", order: "طلب عبر واتساب", back: "العودة إلى الكتالوج" },
   }[lang]
 
+  const phone = "+9647733310100"
+
   const generateOrderMessage = () => {
     const lines = cart.map((i, idx) =>
       `${idx + 1}. ${lang === "en" ? i.name_en : i.name_ar} x${i.quantity} = ${formatPrice(i.price * i.quantity)}`
@@ -30,8 +32,7 @@ export function CartClient() {
     return lines.join("\n")
   }
 
-  const phone = "+9647733310100"
-  const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(`New Order:\n${generateOrderMessage()}`)}`
+  const waUrl = getWhatsAppUrl(phone, `New Order:\n${generateOrderMessage()}`)
 
   function handleCheckout() {
     saveOrder(cart, cartTotal)
@@ -59,11 +60,11 @@ export function CartClient() {
                   <p className="text-xs sm:text-sm" style={{ color: "var(--accent)" }}>{formatPrice(item.price)}</p>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <button onClick={() => updateQuantity(item.product_id, item.quantity - 1)} className="p-2 min-touch flex items-center justify-center rounded-lg" style={{ background: "var(--surface-2)" }}>
+                  <button onClick={() => updateQuantity(item.product_id, item.quantity - 1)} className="p-2 min-touch flex items-center justify-center rounded-lg" style={{ background: "var(--surface-2)" }} aria-label="Decrease quantity">
                     {item.quantity === 1 ? <Trash2 size={14} /> : <Minus size={14} />}
                   </button>
                   <span className="w-6 sm:w-8 text-center text-sm sm:text-base font-medium">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.product_id, item.quantity + 1)} className="p-2 min-touch flex items-center justify-center rounded-lg" style={{ background: "var(--surface-2)" }}>
+                  <button onClick={() => updateQuantity(item.product_id, item.quantity + 1)} className="p-2 min-touch flex items-center justify-center rounded-lg" style={{ background: "var(--surface-2)" }} aria-label="Increase quantity">
                     <Plus size={14} />
                   </button>
                 </div>

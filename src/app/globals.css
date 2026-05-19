@@ -15,6 +15,23 @@
   --border: rgba(255, 255, 255, 0.10);
 }
 
+@media (prefers-color-scheme: light) {
+  :root {
+    --accent: #D11D1D;
+    --accent-light: #E93C3C;
+    --accent-dark: #A51414;
+    --bg: #F5F5F7;
+    --surface: #FFFFFF;
+    --surface-2: #F0F0F5;
+    --surface-3: #E5E5EA;
+    --navbar: rgba(255, 255, 255, 0.85);
+    --text-primary: #1C1C1E;
+    --text-secondary: rgba(28, 28, 30, 0.65);
+    --text-muted: rgba(28, 28, 30, 0.40);
+    --border: rgba(0, 0, 0, 0.10);
+  }
+}
+
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text-primary);
@@ -34,7 +51,7 @@
 body {
   background: var(--bg);
   color: var(--text-primary);
-  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+  font-family: var(--font-geist-sans), "Noto Sans Arabic", sans-serif;
   overscroll-behavior: none;
 }
 

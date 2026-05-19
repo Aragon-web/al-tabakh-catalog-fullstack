@@ -10,15 +10,24 @@ export function useSaveOrder() {
       customer_name: "",
       customer_phone: "",
       notes: "",
-      status: "pending",
+      status: "pending" as const,
       created_at: new Date().toISOString(),
     }
 
-    // Save to localStorage
-    const stored = localStorage.getItem("altabakh_orders")
-    const orders = stored ? JSON.parse(stored) : []
-    orders.unshift(order)
-    localStorage.setItem("altabakh_orders", JSON.stringify(orders.slice(0, 100)))
+    try {
+      const stored = localStorage.getItem("altabakh_orders")
+      const orders = stored ? JSON.parse(stored) : []
+      orders.unshift(order)
+      localStorage.setItem("altabakh_orders", JSON.stringify(orders.slice(0, 100)))
+    } catch (e) {
+      console.error("Failed to save order to localStorage:", e)
+    }
+
+    fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: cart, total }),
+    }).catch(e => console.error("Failed to save order to server:", e))
 
     return order
   }, [])

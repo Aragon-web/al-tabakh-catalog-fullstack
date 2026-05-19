@@ -3,10 +3,16 @@
 import { useState, useEffect } from "react"
 import { formatPrice } from "@/lib/utils"
 import type { Product, Category, Order } from "@/lib/types"
-import { Shield, Package, Tags, ShoppingCart, RefreshCw, Plus, Edit3, Trash2, LogOut, AlertCircle, X, Menu } from "lucide-react"
+import { Shield, Package, Tags, ShoppingCart, RefreshCw, Plus, Edit3, Trash2, LogOut, AlertCircle, X, Menu, Loader2 } from "lucide-react"
+import { STORAGE_KEYS } from "@/lib/constants"
 
 function generateId() {
   return "p_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+}
+
+const t = (e: string, a: string) => {
+  // Simple inline i18n — always EN for now (admin is not translated)
+  return e
 }
 
 export default function AdminPage() {
@@ -23,14 +29,13 @@ export default function AdminPage() {
   const [editCategory, setEditCategory] = useState<Category | null>(null)
   const [seeding, setSeeding] = useState(false)
   const [saveMsg, setSaveMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
   useEffect(() => {
-    const saved = localStorage.getItem("altabakh_admin_token")
-    const savedPwd = localStorage.getItem("altabakh_admin_password")
+    const saved = localStorage.getItem(STORAGE_KEYS.ADMIN_TOKEN)
     if (saved) { setToken(saved); setAuthenticated(true) }
-    if (savedPwd) setPassword(savedPwd)
   }, [])
 
   useEffect(() => {
@@ -39,34 +44,43 @@ export default function AdminPage() {
   }, [authenticated])
 
   async function loadData() {
+    setLoading(true)
     try {
       const [p, c] = await Promise.all([
-        fetch("/api/products").then(r => r.json()),
-        fetch("/api/categories").then(r => r.json()),
+        fetch("/api/products").then(r => { if (!r.ok) throw new Error("Failed to load products"); return r.json() }),
+        fetch("/api/categories").then(r => { if (!r.ok) throw new Error("Failed to load categories"); return r.json() }),
       ])
       if (Array.isArray(p)) setProducts(p)
       if (Array.isArray(c)) setCategories(c)
-    } catch {}
+    } catch (err: any) {
+      setSaveMsg({ type: "error", text: err.message || "Failed to load data" })
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError("")
-    const res = await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) })
-    const data = await res.json()
-    if (data.success) {
-      setToken(data.token)
-      setAuthenticated(true)
-      localStorage.setItem("altabakh_admin_token", data.token)
-      localStorage.setItem("altabakh_admin_password", password)
-    } else {
-      setError("Invalid password")
+    if (!password.trim()) { setError("Password is required"); return }
+    try {
+      const res = await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) })
+      const data = await res.json()
+      if (data.success) {
+        setToken(data.token)
+        setAuthenticated(true)
+        localStorage.setItem(STORAGE_KEYS.ADMIN_TOKEN, data.token)
+      } else {
+        setError(data.error || "Invalid password")
+      }
+    } catch {
+      setError("Connection error")
     }
   }
 
   function handleLogout() {
     setToken(""); setAuthenticated(false)
-    localStorage.removeItem("altabakh_admin_token")
+    localStorage.removeItem(STORAGE_KEYS.ADMIN_TOKEN)
   }
 
   function newProduct() {
@@ -87,27 +101,37 @@ export default function AdminPage() {
       setSaveMsg({ type: "error", text: "Product name is required" }); return
     }
 
-    const exists = products.find(p => p.id === editProduct.id)
-    const res = exists
-      ? await fetch(`/api/products/${editProduct.id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editProduct) })
-      : await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editProduct) })
-
-    if (res.ok) {
-      setEditProduct(null)
-      setSaveMsg({ type: "success", text: exists ? "Product updated" : "Product created" })
-      loadData()
-    } else {
-      const err = await res.json()
-      setSaveMsg({ type: "error", text: err.error || "Failed to save" })
+    try {
+      const exists = products.find(p => p.id === editProduct.id)
+      const url = exists ? `/api/products/${editProduct.id}` : "/api/products"
+      const method = exists ? "PUT" : "POST"
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editProduct) })
+      if (res.ok) {
+        setEditProduct(null)
+        setSaveMsg({ type: "success", text: exists ? "Product updated" : "Product created" })
+        loadData()
+      } else {
+        const err = await res.json()
+        setSaveMsg({ type: "error", text: err.error || "Failed to save" })
+      }
+    } catch {
+      setSaveMsg({ type: "error", text: "Network error" })
     }
   }
 
   async function deleteProduct(id: string) {
-    if (!confirm("Delete this product?")) return
-    const res = await fetch(`/api/products/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
-    if (res.ok) {
-      setSaveMsg({ type: "success", text: "Product deleted" })
-      loadData()
+    setSaveMsg(null)
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) {
+        setSaveMsg({ type: "success", text: "Product deleted" })
+        loadData()
+      } else {
+        const err = await res.json()
+        setSaveMsg({ type: "error", text: err.error || "Delete failed" })
+      }
+    } catch {
+      setSaveMsg({ type: "error", text: "Network error" })
     }
   }
 
@@ -122,38 +146,53 @@ export default function AdminPage() {
       setSaveMsg({ type: "error", text: "Category ID and name are required" }); return
     }
 
-    const exists = categories.find(c => c.id === editCategory.id)
-    const res = exists
-      ? await fetch(`/api/categories/${editCategory.id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editCategory) })
-      : await fetch("/api/categories", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editCategory) })
-
-    if (res.ok) {
-      setEditCategory(null)
-      setSaveMsg({ type: "success", text: exists ? "Category updated" : "Category created" })
-      loadData()
-    } else {
-      const err = await res.json()
-      setSaveMsg({ type: "error", text: err.error || "Failed to save" })
+    try {
+      const exists = categories.find(c => c.id === editCategory.id)
+      const url = exists ? `/api/categories/${editCategory.id}` : "/api/categories"
+      const method = exists ? "PUT" : "POST"
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editCategory) })
+      if (res.ok) {
+        setEditCategory(null)
+        setSaveMsg({ type: "success", text: exists ? "Category updated" : "Category created" })
+        loadData()
+      } else {
+        const err = await res.json()
+        setSaveMsg({ type: "error", text: err.error || "Failed to save" })
+      }
+    } catch {
+      setSaveMsg({ type: "error", text: "Network error" })
     }
   }
 
   async function deleteCategory(id: string) {
-    if (id === "all") return setSaveMsg({ type: "error", text: "Cannot delete 'All Products'" })
-    if (!confirm("Delete this category? Products will be moved to 'All Products'")) return
-    const res = await fetch(`/api/categories/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
-    if (res.ok) {
-      setSaveMsg({ type: "success", text: "Category deleted" })
-      loadData()
+    if (id === "all") return setSaveMsg({ type: "error", text: "Cannot delete default category" })
+    try {
+      const res = await fetch(`/api/categories/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) {
+        setSaveMsg({ type: "success", text: "Category deleted" })
+        loadData()
+      } else {
+        const err = await res.json()
+        setSaveMsg({ type: "error", text: err.error || "Delete failed" })
+      }
+    } catch {
+      setSaveMsg({ type: "error", text: "Network error" })
     }
   }
 
   async function runSeed() {
     setSeeding(true)
-    const res = await fetch("/api/seed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) })
-    const data = await res.json()
-    setSaveMsg({ type: data.error ? "error" : "success", text: data.message || data.error || "Done" })
-    setSeeding(false)
-    loadData()
+    setSaveMsg(null)
+    try {
+      const res = await fetch("/api/seed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) })
+      const data = await res.json()
+      setSaveMsg({ type: data.error ? "error" : "success", text: data.message || data.error || "Done" })
+    } catch {
+      setSaveMsg({ type: "error", text: "Seed failed" })
+    } finally {
+      setSeeding(false)
+      loadData()
+    }
   }
 
   if (!mounted) return null
@@ -168,7 +207,7 @@ export default function AdminPage() {
             <Shield size={24} style={{ color: "var(--accent)" }} />
             <h1 className="text-xl font-bold">Admin Login</h1>
           </div>
-          {error && <p className="text-sm mb-3" style={{ color: "var(--accent)" }}>{error}</p>}
+          {error && <p className="text-sm mb-3" style={{ color: "var(--accent)" }} role="alert">{error}</p>}
           <input
             type="password" value={password} onChange={e => setPassword(e.target.value)}
             placeholder="Password"
@@ -193,11 +232,10 @@ export default function AdminPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] sm:text-xs" style={{ color: "var(--text-muted)" }}>{products.length} prod.</span>
-          <button onClick={handleLogout} className="p-2 min-touch flex items-center justify-center rounded-lg" style={{ color: "var(--text-muted)" }}><LogOut size={16} /></button>
+          <button onClick={handleLogout} className="p-2 min-touch flex items-center justify-center rounded-lg" style={{ color: "var(--text-muted)" }} title="Logout"><LogOut size={16} /></button>
         </div>
       </div>
 
-      {/* Desktop tabs */}
       <div className="hidden sm:flex border-b" style={{ borderColor: "var(--border)", overflowX: "auto" }}>
         {tabs.map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)} className="px-6 py-3 text-sm font-medium transition-colors whitespace-nowrap" style={{
@@ -209,9 +247,8 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* Mobile tab selector */}
       <div className="sm:hidden px-3 py-2" style={{ borderBottom: "1px solid var(--border)" }}>
-        <button onClick={() => setMobileTabOpen(!mobileTabOpen)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm w-full" style={{ background: "var(--surface-2)" }}>
+        <button onClick={() => setMobileTabOpen(!mobileTabOpen)} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm w-full" style={{ background: "var(--surface-2)" }} aria-label="Select tab">
           <Menu size={16} /> {tabs.find(([k]) => k === tab)?.[1] || tab}
         </button>
         {mobileTabOpen && (
@@ -226,16 +263,22 @@ export default function AdminPage() {
       </div>
 
       {saveMsg && (
-        <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg text-sm shadow-lg"
+        <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg text-sm shadow-lg" role="alert"
           style={{ background: saveMsg.type === "success" ? "#065F46" : "#7F1D1D", color: "#fff" }}>
           <AlertCircle size={14} className="flex-shrink-0" />
           <span className="flex-1">{saveMsg.text}</span>
-          <button onClick={() => setSaveMsg(null)} className="p-1"><X size={14} /></button>
+          <button onClick={() => setSaveMsg(null)} className="p-1" aria-label="Dismiss"><X size={14} /></button>
         </div>
       )}
 
       <div className="p-3 sm:p-6 max-w-6xl mx-auto">
-        {tab === "dashboard" && (
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={24} className="animate-spin" style={{ color: "var(--text-muted)" }} />
+          </div>
+        )}
+
+        {!loading && tab === "dashboard" && (
           <div className="space-y-4 sm:space-y-6">
             <div className="grid grid-cols-3 gap-2 sm:gap-4">
               {[
@@ -254,12 +297,12 @@ export default function AdminPage() {
             </div>
             <button onClick={runSeed} disabled={seeding} className="flex items-center gap-2 px-3 sm:px-4 py-3 sm:py-2 rounded-lg text-sm w-full sm:w-auto justify-center" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <RefreshCw size={14} className={seeding ? "animate-spin" : ""} />
-              {seeding ? "Seeding..." : "Import 481 products"}
+              {seeding ? "Importing..." : "Import 481 products"}
             </button>
           </div>
         )}
 
-        {tab === "products" && (
+        {!loading && tab === "products" && (
           <div>
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h2 className="text-base sm:text-lg font-bold">Products ({products.length})</h2>
@@ -267,26 +310,26 @@ export default function AdminPage() {
                 <Plus size={14} /> <span className="hidden sm:inline">Add</span>
               </button>
             </div>
-            <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+            <div className="space-y-2 max-h-[70vh] overflow-y-auto" role="list">
               {products.slice(0, 200).map(p => (
                 <div key={p.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden flex-shrink-0" style={{ background: "var(--surface-2)" }}>
-                    {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" onError={e => (e.target as HTMLImageElement).style.display = "none"} /> : null}
+                    {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" onError={e => (e.target as HTMLImageElement).style.display = "none"} alt="" /> : null}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm font-medium truncate">{p.name_en}</p>
                     <p className="text-[10px] sm:text-xs truncate hidden sm:block" style={{ color: "var(--text-muted)" }}>{p.name_ar}</p>
                   </div>
                   <span className="text-xs sm:text-sm font-medium flex-shrink-0" style={{ color: "var(--accent)" }}>{formatPrice(p.price)}</span>
-                  <button onClick={() => setEditProduct(p)} className="p-1.5 min-touch flex items-center justify-center rounded" style={{ color: "var(--text-muted)" }}><Edit3 size={14} /></button>
-                  <button onClick={() => deleteProduct(p.id)} className="p-1.5 min-touch flex items-center justify-center rounded" style={{ color: "var(--text-muted)" }}><Trash2 size={14} /></button>
+                  <button onClick={() => setEditProduct(p)} className="p-1.5 min-touch flex items-center justify-center rounded" style={{ color: "var(--text-muted)" }} aria-label="Edit product"><Edit3 size={14} /></button>
+                  <button onClick={() => deleteProduct(p.id)} className="p-1.5 min-touch flex items-center justify-center rounded" style={{ color: "var(--text-muted)" }} aria-label="Delete product"><Trash2 size={14} /></button>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {tab === "categories" && (
+        {!loading && tab === "categories" && (
           <div>
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h2 className="text-base sm:text-lg font-bold">Categories ({categories.length})</h2>
@@ -304,8 +347,8 @@ export default function AdminPage() {
                   <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                     <span className="text-[10px] sm:text-xs" style={{ color: "var(--text-muted)" }}>{products.filter(p => p.category_id === c.id).length}</span>
                     {c.id !== "all" && <>
-                      <button onClick={() => setEditCategory(c)} className="p-1.5 min-touch flex items-center justify-center rounded" style={{ color: "var(--text-muted)" }}><Edit3 size={14} /></button>
-                      <button onClick={() => deleteCategory(c.id)} className="p-1.5 min-touch flex items-center justify-center rounded" style={{ color: "var(--text-muted)" }}><Trash2 size={14} /></button>
+                      <button onClick={() => setEditCategory(c)} className="p-1.5 min-touch flex items-center justify-center rounded" style={{ color: "var(--text-muted)" }} aria-label="Edit category"><Edit3 size={14} /></button>
+                      <button onClick={() => deleteCategory(c.id)} className="p-1.5 min-touch flex items-center justify-center rounded" style={{ color: "var(--text-muted)" }} aria-label="Delete category"><Trash2 size={14} /></button>
                     </>}
                   </div>
                 </div>
@@ -314,7 +357,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {tab === "orders" && (
+        {!loading && tab === "orders" && (
           <div className="space-y-2 sm:space-y-3">
             {orders.length === 0 ? (
               <p className="text-center py-8 text-sm" style={{ color: "var(--text-muted)" }}>No orders yet</p>
@@ -347,7 +390,14 @@ export default function AdminPage() {
 
       {/* Product Edit Modal */}
       {editProduct && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.6)" }} onClick={() => setEditProduct(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setEditProduct(null)}
+          onKeyDown={e => { if (e.key === "Escape") setEditProduct(null) }}
+          role="dialog" aria-modal="true" aria-label={products.find(p => p.id === editProduct.id) ? "Edit product" : "Add product"}
+          tabIndex={-1}
+        >
           <div className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6" style={{ background: "var(--surface)" }} onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full mx-auto mb-4 sm:hidden" style={{ background: "var(--border)" }} />
             <h3 className="text-base sm:text-lg font-bold mb-4">{products.find(p => p.id === editProduct.id) ? "Edit Product" : "Add Product"}</h3>
@@ -368,7 +418,7 @@ export default function AdminPage() {
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-sm min-touch">
                   <input type="checkbox" checked={editProduct.is_new} onChange={e => setEditProduct({ ...editProduct, is_new: e.target.checked })} />
-                  {editProduct.is_new ? "NEW badge" : "No badge"}
+                  NEW badge
                 </label>
                 <label className="flex items-center gap-2 text-sm min-touch">
                   <input type="checkbox" checked={editProduct.is_featured} onChange={e => setEditProduct({ ...editProduct, is_featured: e.target.checked })} />
@@ -386,7 +436,14 @@ export default function AdminPage() {
 
       {/* Category Edit Modal */}
       {editCategory && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.6)" }} onClick={() => setEditCategory(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setEditCategory(null)}
+          onKeyDown={e => { if (e.key === "Escape") setEditCategory(null) }}
+          role="dialog" aria-modal="true" aria-label={categories.find(c => c.id === editCategory.id) ? "Edit category" : "Add category"}
+          tabIndex={-1}
+        >
           <div className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-4 sm:p-6" style={{ background: "var(--surface)" }} onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full mx-auto mb-4 sm:hidden" style={{ background: "var(--border)" }} />
             <h3 className="text-base sm:text-lg font-bold mb-4">{categories.find(c => c.id === editCategory.id) ? "Edit Category" : "Add Category"}</h3>

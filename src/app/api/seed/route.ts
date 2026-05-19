@@ -18,7 +18,6 @@ function request(method: string, path: string, body?: any): Promise<any> {
         "Content-Type": "application/json",
         "Prefer": "resolution=merge-duplicates",
       },
-      rejectUnauthorized: false,
     }
     const req = https.request(opts, (res) => {
       let data = ""
@@ -55,7 +54,7 @@ async function upsertProducts(products: Record<string, unknown>[]) {
 
 async function fetchAPI(): Promise<any> {
   return new Promise((resolve, reject) => {
-    https.get("https://menu.orcatech.pro/api/markets/altabakh?format=json", { rejectUnauthorized: false }, (res) => {
+    https.get("https://menu.orcatech.pro/api/markets/altabakh?format=json", (res) => {
       let data = ""
       res.on("data", (chunk) => (data += chunk))
       res.on("end", () => {

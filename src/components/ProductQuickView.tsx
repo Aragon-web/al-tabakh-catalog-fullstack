@@ -3,13 +3,22 @@
 import { useStore } from "@/lib/store"
 import { formatPrice } from "@/lib/utils"
 import { ShoppingCart, X, Check } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import type { Product } from "@/lib/types"
 
 export function ProductQuickView({ product, onClose }: { product: Product; onClose: () => void }) {
   const { lang, addToCart, cartIds, removeFromCart } = useStore()
   const [imgError, setImgError] = useState(false)
   const inCart = cartIds.has(product.id)
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") onClose()
+  }, [onClose])
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [handleKeyDown])
 
   const name = lang === "en" ? product.name_en : product.name_ar
   const desc = lang === "en" ? product.desc_en : product.desc_ar
@@ -20,7 +29,13 @@ export function ProductQuickView({ product, onClose }: { product: Product; onClo
   }[lang]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.6)" }}
+      onClick={onClose}
+      role="dialog" aria-modal="true" aria-label={name}
+      tabIndex={-1}
+    >
       <div className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg overflow-hidden" style={{ background: "var(--surface)" }} onClick={e => e.stopPropagation()}>
         <div className="relative">
           <div className="aspect-video relative overflow-hidden" style={{ background: "var(--surface-2)" }}>
@@ -32,7 +47,7 @@ export function ProductQuickView({ product, onClose }: { product: Product; onClo
               </div>
             )}
           </div>
-          <button onClick={onClose} className="absolute top-3 right-3 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70">
+          <button onClick={onClose} className="absolute top-3 right-3 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70" aria-label="Close">
             <X size={18} />
           </button>
           {product.is_new && (
@@ -58,7 +73,7 @@ export function ProductQuickView({ product, onClose }: { product: Product; onClo
             {inCart ? (
               <button
                 onClick={() => removeFromCart(product.id)}
-                className="flex items-center gap-2 px-4 py-3 sm:py-2 rounded-lg text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-3 sm:py-2 rounded-lg text-sm font-medium transition-opacity"
                 style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}
               >
                 <Check size={16} /> {t.remove}

@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+import type { Product, Category } from "./types"
 
 let _supabaseAdmin: SupabaseClient | null = null
 
@@ -14,29 +15,49 @@ function getAdminClient(): SupabaseClient {
   return _supabaseAdmin
 }
 
-// Helper functions that always use the admin client directly
-export async function fetchProducts() {
+export async function fetchProducts(): Promise<Product[]> {
   try {
     const client = getAdminClient()
-    const { data } = await client.from("products").select("*").order("created_at", { ascending: false })
-    return (data || []) as any[]
-  } catch { return [] }
+    const { data, error } = await client.from("products").select("*").order("created_at", { ascending: false })
+    if (error) {
+      console.error("fetchProducts error:", error.message)
+      return []
+    }
+    return (data || []) as Product[]
+  } catch (e) {
+    console.error("fetchProducts exception:", e)
+    return []
+  }
 }
 
-export async function fetchCategories() {
+export async function fetchCategories(): Promise<Category[]> {
   try {
     const client = getAdminClient()
-    const { data } = await client.from("categories").select("*").order("sort_order", { ascending: true })
-    return (data || []) as any[]
-  } catch { return [] }
+    const { data, error } = await client.from("categories").select("*").order("sort_order", { ascending: true })
+    if (error) {
+      console.error("fetchCategories error:", error.message)
+      return []
+    }
+    return (data || []) as Category[]
+  } catch (e) {
+    console.error("fetchCategories exception:", e)
+    return []
+  }
 }
 
 export async function fetchOrders() {
   try {
     const client = getAdminClient()
-    const { data } = await client.from("orders").select("*").order("created_at", { ascending: false }).limit(50)
-    return (data || []) as any[]
-  } catch { return [] }
+    const { data, error } = await client.from("orders").select("*").order("created_at", { ascending: false }).limit(50)
+    if (error) {
+      console.error("fetchOrders error:", error.message)
+      return []
+    }
+    return (data || [])
+  } catch (e) {
+    console.error("fetchOrders exception:", e)
+    return []
+  }
 }
 
 export { getAdminClient }

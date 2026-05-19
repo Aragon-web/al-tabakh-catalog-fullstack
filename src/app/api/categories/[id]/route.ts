@@ -11,10 +11,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params
     const body = await req.json()
     const { data, error } = await client.from("categories").update(body as any).eq("id", id).select().single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error("PUT /api/categories error:", error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json(data)
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e) {
+    console.error("PUT /api/categories exception:", e)
+    return NextResponse.json({ error: "Internal error" }, { status: 500 })
   }
 }
 
@@ -27,9 +31,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const { id } = await params
     await client.from("products").update({ category_id: "all" }).eq("category_id", id)
     const { error } = await client.from("categories").delete().eq("id", id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error("DELETE /api/categories error:", error.message)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json({ success: true })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e) {
+    console.error("DELETE /api/categories exception:", e)
+    return NextResponse.json({ error: "Internal error" }, { status: 500 })
   }
 }

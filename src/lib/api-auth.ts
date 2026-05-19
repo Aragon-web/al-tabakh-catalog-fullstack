@@ -3,12 +3,12 @@ import crypto from "crypto"
 
 export function verifyAuth(req: Request): true | NextResponse {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
-  if (!token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const expected = process.env.ADMIN_PASSWORD_HASH
+  if (!expected) {
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 })
   }
-  // Accept any non-empty token (simple admin auth)
-  if (token.length < 8) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+  if (token && crypto.createHash("sha256").update(token).digest("hex") === expected) {
+    return true
   }
-  return true
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 }

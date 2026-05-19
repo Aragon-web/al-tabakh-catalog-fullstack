@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useStore } from "@/lib/store"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -30,6 +30,8 @@ export function HeroCarousel() {
   const prev = useCallback(() => setCurrent(c => (c - 1 + slides.length) % slides.length), [])
 
   useEffect(() => {
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (prefersReducedMotion) return
     const timer = setInterval(next, 5000)
     return () => clearInterval(timer)
   }, [next])
