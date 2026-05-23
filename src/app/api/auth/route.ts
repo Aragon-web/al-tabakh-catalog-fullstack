@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 
+function makeToken(secret: string): string {
+  const sessionId = crypto.randomUUID()
+  const proof = crypto.createHmac("sha256", secret).update(sessionId).digest("hex")
+  return sessionId + "." + proof
+}
+
 export async function POST(req: Request) {
   try {
     const { password } = await req.json()
@@ -13,8 +19,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Server misconfigured" }, { status: 500 })
     }
     if (hash === expected) {
-      // Return the password itself as the token (verifyAuth will re-hash it)
-      return NextResponse.json({ token: password, success: true })
+      const token = makeToken(expected)
+      const res = NextResponse.json({ token, success: true })
+      res.cookies.set("admin_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24,
+      })
+      return res
     }
     return NextResponse.json({ error: "Invalid password" }, { status: 401 })
   } catch {

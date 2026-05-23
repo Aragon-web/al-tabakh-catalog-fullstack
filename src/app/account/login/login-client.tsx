@@ -1,0 +1,67 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Header } from "@/components/Header"
+import { Footer } from "@/components/Footer"
+import { useStore } from "@/lib/store"
+import { LogIn, Eye, EyeOff, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { STORAGE_KEYS } from "@/lib/constants"
+
+export function LoginClient() {
+  const router = useRouter()
+  const { refreshCustomer } = useStore()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPw, setShowPw] = useState(false)
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); setError("")
+    if (!email || !password) { setError("All fields required"); return }
+    setLoading(true)
+    try {
+      const res = await fetch("/api/customers/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) })
+      const data = await res.json()
+      if (data.auth_token) {
+        localStorage.setItem(STORAGE_KEYS.CUSTOMER_TOKEN, data.auth_token)
+        refreshCustomer()
+        router.push("/account/profile")
+      } else setError(data.error || "Login failed")
+    } catch { setError("Network error") }
+    setLoading(false)
+  }
+
+  return (
+    <><Header />
+    <main className="flex-1 flex items-center justify-center p-4 pt-28 sm:pt-32">
+      <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-2xl w-full max-w-sm" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div className="flex items-center gap-3 mb-6">
+          <LogIn size={24} style={{ color: "var(--accent)" }} />
+          <h1 className="text-xl font-bold">Login</h1>
+        </div>
+        {error && <p className="text-sm mb-3" style={{ color: "var(--accent)" }}>{error}</p>}
+        <label htmlFor="login-email" className="sr-only">Email</label>
+        <input id="login-email" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} autoFocus
+          className="w-full px-4 py-3 min-touch rounded-lg text-sm outline-none mb-3" style={{ background: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border)" }} />
+        <div className="relative mb-4">
+          <label htmlFor="login-password" className="sr-only">Password</label>
+          <input id="login-password" type={showPw ? "text" : "password"} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
+            className="w-full px-4 py-3 min-touch rounded-lg outline-none text-sm pr-11" style={{ background: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border)" }} />
+          <button type="button" onClick={() => setShowPw(!showPw)} className="absolute inset-y-0 right-0 px-3 flex items-center min-touch" style={{ color: "var(--text-muted)" }} aria-label={showPw ? "Hide password" : "Show password"}>
+            {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
+        </div>
+        <button type="submit" disabled={loading} className="w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 min-touch" style={{ background: "var(--accent)", color: "#fff", opacity: loading ? 0.7 : 1 }}>
+          {loading && <Loader2 size={16} className="animate-spin" />} Login
+        </button>
+        <p className="text-xs text-center mt-4" style={{ color: "var(--text-muted)" }}>
+          No account? <Link href="/account/register" className="font-medium" style={{ color: "var(--accent)" }}>Register</Link>
+        </p>
+      </form>
+    </main>
+    <Footer /></>
+  )
+}

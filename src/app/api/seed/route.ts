@@ -5,7 +5,7 @@ import https from "https"
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-function request(method: string, path: string, body?: any): Promise<any> {
+function request(method: string, path: string, body?: unknown): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const url = new URL(path, SUPABASE_URL)
     const opts: https.RequestOptions = {
@@ -52,13 +52,29 @@ async function upsertProducts(products: Record<string, unknown>[]) {
   }
 }
 
-async function fetchAPI(): Promise<any> {
+interface SeedItem {
+  slug?: string
+  id?: number
+  name_en?: string
+  name?: string
+  name_ar?: string
+  description_en?: string
+  description_ar?: string
+  weight?: string
+  pieces_per_carton?: string
+  price?: string
+  image?: string
+  image_url?: string
+  categories?: SeedItem[]
+}
+
+async function fetchAPI(): Promise<{ categories?: SeedItem[]; products?: SeedItem[]; results?: SeedItem[] }> {
   return new Promise((resolve, reject) => {
     https.get("https://menu.orcatech.pro/api/markets/altabakh?format=json", (res) => {
       let data = ""
       res.on("data", (chunk) => (data += chunk))
       res.on("end", () => {
-        try { resolve(JSON.parse(data)) } catch (e: any) { reject(new Error("JSON parse: " + e.message)) }
+        try { resolve(JSON.parse(data)) } catch (e) { reject(new Error("JSON parse: " + (e instanceof Error ? e.message : String(e)))) }
       })
     }).on("error", reject)
   })
@@ -105,7 +121,7 @@ export async function POST(req: Request) {
         desc_ar: p.description_ar || "",
         weight: p.weight || (weightMatch ? weightMatch[1].trim() : ""),
         pieces_per_carton: p.pieces_per_carton || (piecesMatch ? piecesMatch[1] : ""),
-        price: parseFloat(p.price) || 0,
+        price: parseFloat(p.price || "0") || 0,
         image_url: p.image ? `https://menu.orcatech.pro/${p.image}` : (p.image_url || ""),
         is_new: false,
         is_featured: false,
@@ -121,7 +137,8 @@ export async function POST(req: Request) {
       products: products.length,
       categories: categories.size,
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal error"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

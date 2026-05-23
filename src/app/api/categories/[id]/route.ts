@@ -10,7 +10,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const client = getAdminClient()
     const { id } = await params
     const body = await req.json()
-    const { data, error } = await client.from("categories").update(body as any).eq("id", id).select().single()
+    const { data, error } = await client.from("categories").update(body as Record<string, unknown>).eq("id", id).select().single()
     if (error) {
       console.error("PUT /api/categories error:", error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })

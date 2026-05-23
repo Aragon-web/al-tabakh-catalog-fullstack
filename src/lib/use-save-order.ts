@@ -1,12 +1,13 @@
 import { useCallback } from "react"
 import type { CartItem } from "./types"
+import { STORAGE_KEYS } from "./constants"
 
 export function useSaveOrder() {
-  return useCallback((cart: CartItem[], total: number) => {
+  return useCallback((cart: CartItem[]) => {
+    const id = "ord_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
     const order = {
-      id: "ord_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      id,
       items: cart,
-      total,
       customer_name: "",
       customer_phone: "",
       notes: "",
@@ -15,20 +16,25 @@ export function useSaveOrder() {
     }
 
     try {
-      const stored = localStorage.getItem("altabakh_orders")
+      const stored = localStorage.getItem(STORAGE_KEYS.ORDERS)
       const orders = stored ? JSON.parse(stored) : []
       orders.unshift(order)
-      localStorage.setItem("altabakh_orders", JSON.stringify(orders.slice(0, 100)))
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders.slice(0, 100)))
     } catch (e) {
       console.error("Failed to save order to localStorage:", e)
     }
 
-    fetch("/api/orders", {
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    const token = localStorage.getItem(STORAGE_KEYS.CUSTOMER_TOKEN)
+    if (token) headers["Authorization"] = `Bearer ${token}`
+    const opts: RequestInit = {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: cart, total }),
-    }).catch(e => console.error("Failed to save order to server:", e))
+      headers,
+      body: JSON.stringify({ items: cart }),
+    }
 
-    return order
+    fetch("/api/orders", opts).catch(e => console.error("Failed to save order to server:", e))
+
+    return { order, id }
   }, [])
 }

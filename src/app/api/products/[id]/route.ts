@@ -10,6 +10,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const client = getAdminClient()
     const { id } = await params
     const body = await req.json()
+    delete body.sort_order
+    delete body.id
     const { data, error } = await client.from("products").update(body).eq("id", id).select().single()
     if (error) {
       console.error("PUT /api/products error:", error.message)

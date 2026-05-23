@@ -24,6 +24,7 @@ export async function POST(req: Request) {
   try {
     const client = getAdminClient()
     const body = await req.json()
+    delete body.sort_order
     const { data, error } = await client.from("products").insert(body).select().single()
     if (error) {
       console.error("POST /api/products error:", error.message)
