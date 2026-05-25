@@ -23,14 +23,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid file type. Only JPEG, PNG, WEBP, GIF allowed." }, { status: 400 })
     }
 
-    const buf = Buffer.from(await file.arrayBuffer())
+    const buf = Buffer.from(await file.arrayBuffer()) as unknown as Buffer
 
     let uploadBuf = buf
     let contentType = file.type
     let filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
 
     if (ext !== "gif" && ext !== "webp") {
-      uploadBuf = await sharp(buf as Buffer).webp({ quality: 80 }).toBuffer()
+      uploadBuf = await sharp(new Uint8Array(buf)).webp({ quality: 80 }).toBuffer()
       contentType = "image/webp"
       filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`
     }
