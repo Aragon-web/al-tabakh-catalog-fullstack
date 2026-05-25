@@ -145,18 +145,3 @@ export async function sendOrderNotification(items: OrderItem[], customerName: st
     `,
   })
 }
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr><td style="padding: 8px 0; font-weight: bold; color: #666;">Name</td><td style="padding: 8px 0;">${name}</td></tr>
-          <tr><td style="padding: 8px 0; font-weight: bold; color: #666;">Email</td><td style="padding: 8px 0;"><a href="mailto:${email}">${email}</a></td></tr>
-          <tr><td style="padding: 8px 0; font-weight: bold; color: #666;">Subject</td><td style="padding: 8px 0;">${subject}</td></tr>
-        </table>
-        <div style="margin-top: 16px; padding: 16px; background: #f5f5f5; border-radius: 8px;">
-          <p style="margin: 0; white-space: pre-wrap;">${message}</p>
-        </div>
-        ${fileUrl ? `<p style="margin-top: 12px;"><a href="${fileUrl}" style="color: #D11D1D;">View attached file</a></p>` : ""}
-        <hr style="margin-top: 24px; border: none; border-top: 1px solid #eee;" />
-        <p style="color: #999; font-size: 12px;">Sent from Al-Tabakh website contact form</p>
-      </div>
-    `,
-  })
-}
