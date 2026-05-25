@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 
-function getCustomerId(req: Request): Promise<number | null> {
+async function getCustomerId(req: Request): Promise<number | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
-  if (!token) return Promise.resolve(null)
-  return getAdminClient().from("customers").select("id").eq("auth_token", token).maybeSingle().then(r => r.data?.id ?? null)
+  if (!token) return null
+  const { data } = await getAdminClient().from("customers").select("id").eq("auth_token", token).maybeSingle()
+  return data?.id ?? null
 }
 
 export async function GET(req: Request) {
