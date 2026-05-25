@@ -28,6 +28,7 @@ export const adminT = {
     recipes: "Recipes",
     appearance: "Appearance",
     content: "Content",
+    promo: "Promo Codes",
 
     // Dashboard
     statProducts: "Products",
@@ -252,6 +253,7 @@ export const adminT = {
     recipes: "الوصفات",
     appearance: "المظهر",
     content: "المحتوى",
+    promo: "رموز العروض",
 
     statProducts: "المنتجات",
     statCategories: "الأقسام",

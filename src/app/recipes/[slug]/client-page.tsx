@@ -5,14 +5,30 @@ import { useStore } from "@/lib/store"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { PageTransition } from "@/components/PageTransition"
-import { Home, Calendar, User, ArrowLeft, ShoppingCart } from "lucide-react"
+import { Home, Calendar, User, ArrowLeft, ShoppingCart, MessageSquare, ThumbsUp, Send, Award, Check } from "lucide-react"
 import Link from "next/link"
 import type { Recipe, Product } from "@/lib/types"
+
+interface Comment {
+  id: number; comment: string; customer_name: string; created_at: string
+}
 
 export function RecipeDetailClient({ recipe }: { recipe: Recipe | null }) {
   const { lang, addToCart, cart } = useStore()
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
   const [loadingRelated, setLoadingRelated] = useState(false)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [commentText, setCommentText] = useState("")
+  const [submittingComment, setSubmittingComment] = useState(false)
+  const [commentMsg, setCommentMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [madeItToday, setMadeItToday] = useState(false)
+  const [madeItMsg, setMadeItMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [submittingMadeIt, setSubmittingMadeIt] = useState(false)
+
+  useEffect(() => {
+    if (!recipe) return
+    fetch(`/api/recipes/${recipe.slug}/comments`).then(r => r.json()).then(setComments).catch(() => {})
+  }, [recipe])
 
   useEffect(() => {
     if (!recipe) return
@@ -46,6 +62,48 @@ export function RecipeDetailClient({ recipe }: { recipe: Recipe | null }) {
   const title = lang === "en" ? recipe.title_en : recipe.title_ar
   const content = lang === "en" ? recipe.content_en : recipe.content_ar
   const excerpt = lang === "en" ? recipe.excerpt_en : recipe.excerpt_ar
+
+  async function submitComment() {
+    if (!recipe || !commentText.trim()) return
+    setSubmittingComment(true); setCommentMsg(null)
+    const token = localStorage.getItem("altabakh_customer_token")
+    if (!token) { setCommentMsg({ type: "error", text: lang === "en" ? "Please login to comment" : "يرجى تسجيل الدخول للتعليق" }); setSubmittingComment(false); return }
+    try {
+      const res = await fetch(`/api/recipes/${recipe.slug}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ comment: commentText.trim() }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setCommentMsg({ type: "success", text: lang === "en" ? "Comment posted! +5 points" : "تم نشر التعليق! +٥ نقاط" })
+        setCommentText("")
+        fetch(`/api/recipes/${recipe.slug}/comments`).then(r => r.json()).then(setComments).catch(() => {})
+      } else { setCommentMsg({ type: "error", text: data.error || (lang === "en" ? "Failed to post" : "فشل النشر") }) }
+    } catch { setCommentMsg({ type: "error", text: "Network error" }) }
+    setSubmittingComment(false)
+  }
+
+  async function handleMadeIt() {
+    if (!recipe) { setSubmittingMadeIt(false); return }
+    setSubmittingMadeIt(true); setMadeItMsg(null)
+    const token = localStorage.getItem("altabakh_customer_token")
+    if (!token) { setMadeItMsg({ type: "error", text: lang === "en" ? "Please login first" : "يرجى تسجيل الدخول أولاً" }); setSubmittingMadeIt(false); return }
+    try {
+      const res = await fetch(`/api/recipes/${recipe.slug}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ comment: "I made this recipe! 🎉" }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setMadeItToday(true)
+        setMadeItMsg({ type: "success", text: lang === "en" ? "Claimed! +5 points" : "تم! +٥ نقاط" })
+        fetch(`/api/recipes/${recipe.slug}/comments`).then(r => r.json()).then(setComments).catch(() => {})
+      } else { setMadeItMsg({ type: "error", text: data.error || (lang === "en" ? "Already claimed today" : "تم المطالبة اليوم بالفعل") }) }
+    } catch { setMadeItMsg({ type: "error", text: "Network error" }) }
+    setSubmittingMadeIt(false)
+  }
 
   return (
     <PageTransition>
@@ -146,6 +204,62 @@ export function RecipeDetailClient({ recipe }: { recipe: Recipe | null }) {
               )}
             </div>
           )}
+
+          {/* I Made This! */}
+          <div className="mt-6 p-4 rounded-xl" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: madeItToday ? "rgba(16,185,129,0.15)" : "var(--surface-2)" }}>
+                <Award size={18} style={{ color: madeItToday ? "#10b981" : "var(--accent)" }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold">{lang === "en" ? "Did you make this recipe?" : "هل جربت هذه الوصفة؟"}</p>
+                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{lang === "en" ? "Earn 5 points when you try it!" : "احصل على ٥ نقاط عند تجربتها!"}</p>
+              </div>
+              <button onClick={handleMadeIt} disabled={submittingMadeIt || madeItToday}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: madeItToday ? "rgba(16,185,129,0.15)" : "var(--accent)", color: madeItToday ? "#10b981" : "#fff" }}>
+                {madeItToday ? <Check size={14} /> : <ThumbsUp size={14} />}
+                {madeItToday ? (lang === "en" ? "Claimed +5" : "تم +٥") : (lang === "en" ? "I Made It!" : "جربتها!")}
+              </button>
+            </div>
+            {madeItMsg && <p className="text-xs mt-2" style={{ color: madeItMsg.type === "success" ? "#10b981" : "#ef4444" }}>{madeItMsg.text}</p>}
+          </div>
+
+          {/* Comments Section */}
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <MessageSquare size={16} style={{ color: "var(--accent)" }} />
+              <h3 className="text-base font-bold">{lang === "en" ? "Comments" : "التعليقات"}</h3>
+              <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>{comments.length}</span>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              {comments.map(c => (
+                <div key={c.id} className="p-3 rounded-lg" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{c.customer_name}</span>
+                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{c.comment}</p>
+                </div>
+              ))}
+              {comments.length === 0 && (
+                <p className="text-sm text-center py-4" style={{ color: "var(--text-muted)" }}>{lang === "en" ? "No comments yet. Share your thoughts!" : "لا توجد تعليقات بعد. شاركنا رأيك!"}</p>
+              )}
+            </div>
+
+            {commentMsg && <div className="mb-3 px-3 py-2 rounded-lg text-xs" style={{ background: commentMsg.type === "success" ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: commentMsg.type === "success" ? "#10b981" : "#ef4444" }}>{commentMsg.text}</div>}
+
+            <div className="flex gap-2">
+              <input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder={lang === "en" ? "Write a comment... (+5 pts)" : "اكتب تعليقًا... (+٥ نقاط)"} maxLength={300}
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              <button onClick={submitComment} disabled={submittingComment || !commentText.trim()}
+                className="px-4 py-2.5 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                style={{ background: "var(--accent)", color: "#fff" }}>
+                <Send size={13} /> {lang === "en" ? "Send" : "إرسال"}
+              </button>
+            </div>
+          </div>
 
           <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--border)" }}>
             <Link href="/recipes" className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline" style={{ color: "var(--accent)" }}>

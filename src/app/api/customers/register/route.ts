@@ -20,10 +20,15 @@ export async function POST(req: Request) {
 
     const { data, error } = await client.from("customers").insert({
       name, email, phone: phone || null,
-      password_hash, auth_token, points: 0,
+      password_hash, auth_token, points: 30,
     }).select().single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    await client.from("loyalty_transactions").insert({
+      customer_id: data.id, points: 30, type: "earn", reason: "registration_bonus",
+    })
+
     return NextResponse.json({ id: data.id, name: data.name, email: data.email, points: data.points, auth_token: data.auth_token })
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })

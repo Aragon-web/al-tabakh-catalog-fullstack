@@ -5,11 +5,15 @@ import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { ProductCard } from "@/components/ProductCard"
 import { useStore } from "@/lib/store"
-import { ShoppingCart, ArrowLeft, Home, Weight, Package, Edit, X } from "lucide-react"
+import { ShoppingCart, ArrowLeft, Home, Weight, Package, Edit, X, Star, Camera, Upload, Check, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { categorySlug } from "@/lib/slugify"
 import { getRelatedProducts } from "@/lib/product-similarity"
+
+interface Review {
+  id: number; rating: number; comment: string; image_url: string | null; customer_name: string; created_at: string
+}
 
 export function ProductClient({ productId }: { productId: string }) {
   const { lang, products, categories, cart, addToCart, updateQuantity, cartIds } = useStore()
@@ -18,7 +22,19 @@ export function ProductClient({ productId }: { productId: string }) {
   const [qtyInput, setQtyInput] = useState("")
   const [qtyError, setQtyError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState("")
+  const [reviewImage, setReviewImage] = useState<File | null>(null)
+  const [reviewImagePreview, setReviewImagePreview] = useState("")
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviewMsg, setReviewMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const qty = qtyInput === "" ? 0 : parseInt(qtyInput, 10)
+
+  useEffect(() => {
+    fetch(`/api/reviews?product_id=${productId}`).then(r => r.json()).then(setReviews).catch(() => {})
+  }, [productId])
 
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value
@@ -67,6 +83,55 @@ export function ProductClient({ productId }: { productId: string }) {
   }[lang]
 
   const related = getRelatedProducts(product, products)
+
+  async function submitReview() {
+    if (!product || !reviewComment.trim()) return
+    setSubmittingReview(true)
+    setReviewMsg(null)
+    const token = localStorage.getItem("altabakh_customer_token")
+    if (!token) { setReviewMsg({ type: "error", text: lang === "en" ? "Please login to review" : "يرجى تسجيل الدخول للمراجعة" }); setSubmittingReview(false); return }
+    try {
+      let image_url = ""
+      if (reviewImage) {
+        const formData = new FormData()
+        formData.append("file", reviewImage)
+        const uploadRes = await fetch("/api/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData })
+        if (uploadRes.ok) { const upData = await uploadRes.json(); image_url = upData.url || "" }
+      }
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ product_id: product.id, rating: reviewRating, comment: reviewComment.trim(), image_url: image_url || undefined }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setReviewMsg({ type: "success", text: lang === "en" ? `Review submitted! +${image_url ? "35" : "10"} points earned` : `تم تقديم المراجعة! +${image_url ? "٣٥" : "١٠"} نقطة` })
+        setShowReviewForm(false)
+        setReviewComment("")
+        setReviewRating(5)
+        setReviewImage(null)
+        setReviewImagePreview("")
+        fetch(`/api/reviews?product_id=${productId}`).then(r => r.json()).then(setReviews).catch(() => {})
+      } else {
+        setReviewMsg({ type: "error", text: data.error || (lang === "en" ? "Failed to submit" : "فشل التقديم") })
+      }
+    } catch { setReviewMsg({ type: "error", text: "Network error" }) }
+    setSubmittingReview(false)
+  }
+
+  function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
+    return <div className="flex items-center gap-0.5">{Array.from({ length: 5 }).map((_, i) => {
+      const filled = i < value
+      return onChange ? (
+        <button key={i} onClick={() => onChange(i + 1)} className="p-0.5 min-touch" aria-label={`${i + 1} star`}>
+          <Star size={18} fill={filled ? "var(--accent)" : "none"} style={{ color: "var(--accent)", opacity: filled ? 1 : 0.3 }} />
+        </button>
+      ) : (
+        <span key={i}><Star size={14} fill={filled ? "var(--accent)" : "none"} style={{ color: "var(--accent)", opacity: filled ? 1 : 0.3 }} /></span>
+      )
+    })}</div>
+  }
+
   return (
     <>
       <Header />
@@ -213,6 +278,117 @@ export function ProductClient({ productId }: { productId: string }) {
               </button>
             </div>
           </div>
+
+          {/* Reviews Section */}
+          <div className="mb-12 sm:mb-16">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <div className="flex items-center gap-2">
+                <MessageSquare size={18} style={{ color: "var(--accent)" }} />
+                <h2 className="heading text-xl sm:text-2xl font-bold">{lang === "en" ? "Reviews" : "المراجعات"}</h2>
+                {reviews.length > 0 && (
+                  <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
+                    {reviews.length} {lang === "en" ? "reviews" : "مراجعة"}
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowReviewForm(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                style={{ background: "var(--accent)", color: "#fff" }}>
+                <Star size={13} /> {lang === "en" ? "Write Review" : "اكتب مراجعة"}
+              </button>
+            </div>
+
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-3 mb-4 p-3 rounded-lg" style={{ background: "var(--surface-2)" }}>
+                <div className="flex items-center gap-1">
+                  <StarRating value={Math.round(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length)} />
+                </div>
+                <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                  {(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}
+                </span>
+                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  ({reviews.length} {lang === "en" ? "reviews" : "مراجعات"})
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {reviews.map(r => (
+                <div key={r.id} className="p-3 sm:p-4 rounded-xl" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
+                        {r.customer_name.charAt(0)}
+                      </div>
+                      <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{r.customer_name}</span>
+                    </div>
+                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{new Date(r.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <StarRating value={r.rating} />
+                  <p className="text-sm mt-2" style={{ color: "var(--text-secondary)" }}>{r.comment}</p>
+                  {r.image_url && (
+                    <img src={r.image_url} alt="Review" className="mt-2 rounded-lg max-h-48 object-cover" />
+                  )}
+                </div>
+              ))}
+              {reviews.length === 0 && (
+                <p className="text-sm text-center py-8" style={{ color: "var(--text-muted)" }}>
+                  {lang === "en" ? "No reviews yet. Be the first!" : "لا توجد مراجعات بعد. كن أول من يقيم!"}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Review Form Modal */}
+          {showReviewForm && (
+            <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ background: "rgba(0,0,0,0.6)" }} onClick={() => { if (!submittingReview) setShowReviewForm(false) }}>
+              <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden animate-slide-up" style={{ background: "var(--surface)" }} onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <h3 className="font-bold text-sm">{lang === "en" ? "Write a Review" : "اكتب مراجعة"}</h3>
+                  <button onClick={() => setShowReviewForm(false)} className="p-1 rounded-lg hover:bg-surface-2 min-touch" style={{ color: "var(--text-muted)" }}><X size={16} /></button>
+                </div>
+                <div className="p-5 space-y-4">
+                  {reviewMsg && (
+                    <div className="px-3 py-2 rounded-lg text-xs" style={{ background: reviewMsg.type === "success" ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: reviewMsg.type === "success" ? "#10b981" : "#ef4444" }}>
+                      {reviewMsg.text}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>{lang === "en" ? "Rating" : "التقييم"}</p>
+                    <StarRating value={reviewRating} onChange={setReviewRating} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>{lang === "en" ? "Your Review" : "مراجعتك"}</p>
+                    <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} placeholder={lang === "en" ? "Share your experience..." : "شارك تجربتك..."} rows={4} maxLength={500}
+                      className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)", resize: "vertical" }} />
+                    <div className="flex justify-end mt-1"><span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{reviewComment.length}/500</span></div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>{lang === "en" ? "Photo (optional)" : "صورة (اختياري)"}</p>
+                    <label className="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer text-xs font-medium transition-colors hover:opacity-80" style={{ background: "var(--surface-2)", border: "1px dashed var(--border)", color: "var(--text-secondary)" }}>
+                      <Camera size={15} />
+                      {reviewImagePreview ? (lang === "en" ? "Change photo" : "تغيير الصورة") : (lang === "en" ? "Add photo (+25 pts)" : "إضافة صورة (+٢٥ نقطة)" )}
+                      <input type="file" accept="image/*" className="hidden" onChange={e => {
+                        const f = e.target.files?.[0]; if (!f) return;
+                        setReviewImage(f); setReviewImagePreview(URL.createObjectURL(f))
+                      }} />
+                    </label>
+                    {reviewImagePreview && (
+                      <div className="relative mt-2 inline-block">
+                        <img src={reviewImagePreview} alt="Preview" className="h-24 rounded-lg object-cover" />
+                        <button onClick={() => { setReviewImage(null); setReviewImagePreview("") }} className="absolute -top-2 -right-2 p-0.5 rounded-full" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}><X size={12} /></button>
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={submitReview} disabled={submittingReview || !reviewComment.trim()}
+                    className="w-full py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                    style={{ background: "var(--accent)", color: "#fff" }}>
+                    {submittingReview ? (lang === "en" ? "Submitting..." : "جاري التقديم...") : (lang === "en" ? "Submit Review" : "تقديم المراجعة")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {related.length > 0 && (
             <section>
