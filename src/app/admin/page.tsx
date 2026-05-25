@@ -63,6 +63,7 @@ export default function AdminPage() {
     setTimeout(() => setToast(null), 4000)
   }, [])
 
+  const showLoadingSpinner = useDelayedLoading(loading, 300)
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), []) // eslint-disable-line react-hooks/set-state-in-effect
 
@@ -303,7 +304,7 @@ export default function AdminPage() {
 
       {/* Content */}
       <div className="p-3 sm:p-6 max-w-7xl mx-auto">
-        {useDelayedLoading(loading, 300) && (
+        {showLoadingSpinner && (
           <div className="flex items-center justify-center py-16">
             <Spinner size={24} />
           </div>
