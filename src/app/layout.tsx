@@ -1,16 +1,19 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Tajawal, Noto_Sans_Arabic } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/lib/theme-provider"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { WhatsAppButton } from "@/components/WhatsAppButton"
 import { BackToTop } from "@/components/BackToTop"
+import { PageTransition } from "@/components/PageTransition"
 import { Analytics } from "@vercel/analytics/react"
 import { getAdminClient } from "@/lib/supabase"
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
+const tajawal = Tajawal({ variable: "--font-tajawal", subsets: ["arabic"], weight: ["400", "500", "700", "800"] })
+const notoSansArabic = Noto_Sans_Arabic({ variable: "--font-noto-sans-arabic", subsets: ["arabic"], weight: ["400", "500", "600", "700"] })
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://al-tabakh-v3.vercel.app"),
@@ -60,14 +63,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } catch {}
 
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${tajawal.variable} ${notoSansArabic.variable} h-full antialiased`}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
-        {/* font-tajawal variable set in globals.css */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
@@ -88,7 +86,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
         <ErrorBoundary>
+        <PageTransition>
         {children}
+        </PageTransition>
         </ErrorBoundary>
         <Analytics />
         <ServiceWorkerRegister />

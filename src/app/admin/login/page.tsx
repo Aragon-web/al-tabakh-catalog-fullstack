@@ -2,12 +2,14 @@
 import { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Shield, Eye, EyeOff } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
+import { STORAGE_KEYS } from "@/lib/constants"
 
 export const dynamic = "force-dynamic"
 
 export default function AdminLoginPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}><Spinner size={24} /></div>}>
       <LoginForm />
     </Suspense>
   )
@@ -41,7 +43,7 @@ function LoginForm() {
       })
       const data = await res.json()
       if (data.success) {
-        localStorage.setItem("admin_token", data.token)
+        localStorage.setItem(STORAGE_KEYS.ADMIN_TOKEN, data.token)
         router.push(redirect)
       } else {
         setError(data.error || "Invalid password")
@@ -74,7 +76,7 @@ function LoginForm() {
         <button type="submit" disabled={loading}
           className="w-full py-3 rounded-lg font-medium text-sm disabled:opacity-50"
           style={{ background: "var(--accent)", color: "#fff" }}>
-          {loading ? "Logging in..." : "Login"}
+          {loading ? <><Spinner size={16} /> Logging in...</> : "Login"}
         </button>
       </form>
     </div>

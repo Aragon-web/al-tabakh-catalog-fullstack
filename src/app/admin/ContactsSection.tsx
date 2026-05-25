@@ -2,19 +2,22 @@
 
 import { useState } from "react"
 import { Mail, User, Calendar, FileText, ChevronDown, ExternalLink } from "lucide-react"
+import { useStore } from "@/lib/store"
+import { adminT } from "@/lib/admin-translations"
 
 interface Contact {
   id: number; name: string; email: string; subject: string; message: string; file_url: string | null; created_at: string
 }
 
 export function ContactsSection({ contacts }: { contacts: Contact[] }) {
+  const { lang } = useStore(); const t = adminT[lang]
   const [expanded, setExpanded] = useState<number | null>(null)
 
   return (
     <div>
-      <h2 className="text-base sm:text-lg font-bold mb-3">Messages ({contacts.length})</h2>
+      <h2 className="text-base sm:text-lg font-bold mb-3">{t.messages} ({contacts.length})</h2>
       {contacts.length === 0 ? (
-        <p className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>No messages yet</p>
+        <p className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>{t.noMessages}</p>
       ) : (
         <div className="space-y-2">
           {contacts.map(c => (
@@ -38,7 +41,7 @@ export function ContactsSection({ contacts }: { contacts: Contact[] }) {
                     <div className="flex items-center gap-1.5"><Calendar size={12} /> {new Date(c.created_at).toLocaleString()}</div>
                     {c.file_url && (
                       <a href={c.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5" style={{ color: "var(--accent)" }}>
-                        <FileText size={12} /> View file <ExternalLink size={10} />
+                        <FileText size={12} /> {t.viewFile} <ExternalLink size={10} />
                       </a>
                     )}
                   </div>

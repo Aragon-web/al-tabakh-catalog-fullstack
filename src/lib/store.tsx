@@ -5,6 +5,11 @@ import type { Product, CartItem, Category } from "./types"
 import { STORAGE_KEYS } from "./constants"
 import Fuse from "fuse.js"
 
+function getAuthHeaders(): Record<string, string> {
+  const token = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.CUSTOMER_TOKEN) : null
+  return token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : {}
+}
+
 interface StoreState {
   products: Product[]
   categories: Category[]
@@ -37,6 +42,19 @@ export function StoreProvider({ children, products, categories }: { children: Re
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [customer, setCustomer] = useState<{ id: number; name: string; email: string; phone: string | null; points: number } | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const prevCustomerId = useRef<number | null>(null)
+
+  const syncCartToServer = useCallback(async (items: CartItem[]) => {
+    const token = localStorage.getItem(STORAGE_KEYS.CUSTOMER_TOKEN)
+    if (!token) return
+    try {
+      await fetch("/api/cart", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ items: items.map(i => ({ product_id: i.product_id, quantity: i.quantity })) }),
+      })
+    } catch { /* ignore */ }
+  }, [])
 
   const refreshCustomer = useCallback(async () => {
     const token = localStorage.getItem(STORAGE_KEYS.CUSTOMER_TOKEN)
@@ -46,6 +64,23 @@ export function StoreProvider({ children, products, categories }: { children: Re
       if (res.ok) {
         const data = await res.json()
         setCustomer(data)
+        try {
+          const cartRes = await fetch("/api/cart", { headers: { Authorization: `Bearer ${token}` } })
+          if (cartRes.ok) {
+            const serverCart = await cartRes.json()
+            if (Array.isArray(serverCart) && serverCart.length > 0) {
+              setCart(prev => {
+                const merged = [...prev]
+                for (const sc of serverCart) {
+                  if (!merged.find(i => i.product_id === sc.product_id)) {
+                    merged.push({ product_id: sc.product_id, name_en: "", name_ar: "", quantity: sc.quantity })
+                  }
+                }
+                return merged
+              })
+            }
+          }
+        } catch { /* ignore */ }
       } else {
         localStorage.removeItem(STORAGE_KEYS.CUSTOMER_TOKEN)
         setCustomer(null)
@@ -54,10 +89,11 @@ export function StoreProvider({ children, products, categories }: { children: Re
   }, [])
 
   const logout = useCallback(() => {
+    syncCartToServer(cart)
     localStorage.removeItem(STORAGE_KEYS.CUSTOMER_TOKEN)
     fetch("/api/auth/logout", { method: "POST" }).catch(() => {})
     setCustomer(null)
-  }, [])
+  }, [syncCartToServer, cart])
 
   useEffect(() => {
     const token = localStorage.getItem(STORAGE_KEYS.CUSTOMER_TOKEN)
@@ -77,7 +113,8 @@ export function StoreProvider({ children, products, categories }: { children: Re
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart)) } catch { /* ignore */ }
-  }, [cart])
+    syncCartToServer(cart)
+  }, [cart, syncCartToServer])
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEYS.LANG, lang) } catch { /* ignore */ }

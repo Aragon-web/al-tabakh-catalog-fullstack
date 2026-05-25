@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { useStore } from "@/lib/store"
-import { LogIn, Eye, EyeOff, Loader2 } from "lucide-react"
+import { LogIn, Eye, EyeOff } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
 import Link from "next/link"
 import { STORAGE_KEYS } from "@/lib/constants"
 
@@ -54,8 +55,11 @@ export function LoginClient() {
             {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
           </button>
         </div>
+        <div className="text-right mb-4">
+          <Link href="/account/forgot-password" className="text-xs font-medium" style={{ color: "var(--accent)" }}>Forgot password?</Link>
+        </div>
         <button type="submit" disabled={loading} className="w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 min-touch" style={{ background: "var(--accent)", color: "#fff", opacity: loading ? 0.7 : 1 }}>
-          {loading && <Loader2 size={16} className="animate-spin" />} Login
+          {loading && <Spinner size={16} />} Login
         </button>
         <p className="text-xs text-center mt-4" style={{ color: "var(--text-muted)" }}>
           No account? <Link href="/account/register" className="font-medium" style={{ color: "var(--accent)" }}>Register</Link>

@@ -251,7 +251,7 @@ export function ProductClient({ productId }: { productId: string }) {
           <button onClick={() => setZoomImage(false)} className="absolute top-4 right-4 p-2 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }} aria-label="Close zoom">
             <X size={24} />
           </button>
-          <img src={product.image_url} alt={name} className="max-w-full max-h-full object-contain" onClick={e => e.stopPropagation()} />
+          <img src={product.image_url} alt={name} loading="lazy" className="max-w-full max-h-full object-contain" onClick={e => e.stopPropagation()} />
         </div>
       )}
 

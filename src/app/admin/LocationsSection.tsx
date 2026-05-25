@@ -6,6 +6,10 @@ import type { LocationCountry, CityInfo, VendorLocation } from "@/lib/cities"
 import { COUNTRIES as staticCountries } from "@/lib/cities"
 import { slugify } from "@/lib/slugify"
 import { ConfirmDialog } from "./ConfirmDialog"
+import { Spinner } from "@/components/Spinner"
+import { useDelayedLoading } from "@/lib/useDelayedLoading"
+import { useStore } from "@/lib/store"
+import { adminT } from "@/lib/admin-translations"
 
 function parseMapsUrl(url: string): { lat: number; lng: number } | null {
   if (!url) return null
@@ -24,7 +28,7 @@ const EMPTY_VENDOR: VendorLocation = { name_en: "", name_ar: "", lat: 0, lng: 0,
 const EMPTY_CITY: CityInfo = { slug: "", name_en: "", name_ar: "", description_en: "", description_ar: "", seoTitle_en: "", seoTitle_ar: "", region: "", lat: 0, lng: 0, vendors: [] }
 const EMPTY_COUNTRY: LocationCountry = { slug: "", name_en: "", name_ar: "", cities: [] }
 
-function VendorEditor({ value, onChange, onDelete, index }: { value: VendorLocation; onChange: (v: VendorLocation) => void; onDelete: () => void; index: number }) {
+function VendorEditor({ value, onChange, onDelete, index, t }: { value: VendorLocation; onChange: (v: VendorLocation) => void; onDelete: () => void; index: number; t: Record<string, string> }) {
   const [mapsUrl, setMapsUrl] = useState(
     value.lat && value.lng ? `https://www.google.com/maps?q=${value.lat},${value.lng}` : ""
   )
@@ -37,24 +41,24 @@ function VendorEditor({ value, onChange, onDelete, index }: { value: VendorLocat
     <div className="p-2 rounded-lg" style={{ border: "1px solid var(--border)", background: "var(--surface-2)" }}>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>#{index + 1}</span>
-        <button onClick={onDelete} className="p-0.5 rounded" style={{ color: "#EF4444" }} aria-label="Delete vendor"><Trash2 size={10} /></button>
+        <button onClick={onDelete} className="p-0.5 rounded" style={{ color: "#EF4444" }} aria-label={t.deleteDefault}><Trash2 size={10} /></button>
       </div>
       <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-        <input placeholder="Name EN" aria-label="City name English" value={value.name_en} onChange={e => onChange({ ...value, name_en: e.target.value })} className="px-1.5 py-1 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-        <input placeholder="Name AR" aria-label="City name Arabic" value={value.name_ar} onChange={e => onChange({ ...value, name_ar: e.target.value })} className="px-1.5 py-1 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+        <input placeholder={t.vendorNameEn} aria-label={t.vendorNameEn} value={value.name_en} onChange={e => onChange({ ...value, name_en: e.target.value })} className="px-1.5 py-1 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+        <input placeholder={t.vendorNameAr} aria-label={t.vendorNameAr} value={value.name_ar} onChange={e => onChange({ ...value, name_ar: e.target.value })} className="px-1.5 py-1 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
         <div className="col-span-2 flex items-center gap-1">
           <Map size={12} style={{ color: "var(--text-muted)" }} />
-          <input placeholder="Paste Google Maps link here" aria-label="Google Maps URL" value={mapsUrl} onChange={e => handleMapsUrl(e.target.value)} className="flex-1 px-1.5 py-1 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+          <input placeholder={t.mapsLink} aria-label={t.mapsLink} value={mapsUrl} onChange={e => handleMapsUrl(e.target.value)} className="flex-1 px-1.5 py-1 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
         </div>
-        <input placeholder="Phone" aria-label="City phone" value={value.phone} onChange={e => onChange({ ...value, phone: e.target.value })} className="px-1.5 py-1 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-        <input placeholder="Address EN" aria-label="Address English" value={value.address_en} onChange={e => onChange({ ...value, address_en: e.target.value })} className="px-1.5 py-1 rounded col-span-2" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-        <input placeholder="Address AR" aria-label="Address Arabic" value={value.address_ar} onChange={e => onChange({ ...value, address_ar: e.target.value })} className="px-1.5 py-1 rounded col-span-2" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+        <input placeholder={t.phone} aria-label={t.phone} value={value.phone} onChange={e => onChange({ ...value, phone: e.target.value })} className="px-1.5 py-1 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+        <input placeholder={t.addressEn} aria-label={t.addressEn} value={value.address_en} onChange={e => onChange({ ...value, address_en: e.target.value })} className="px-1.5 py-1 rounded col-span-2" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+        <input placeholder={t.addressAr} aria-label={t.addressAr} value={value.address_ar} onChange={e => onChange({ ...value, address_ar: e.target.value })} className="px-1.5 py-1 rounded col-span-2" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
       </div>
     </div>
   )
 }
 
-function VendorsEditor({ vendors, onChange }: { vendors: VendorLocation[]; onChange: (v: VendorLocation[]) => void }) {
+function VendorsEditor({ vendors, onChange, t }: { vendors: VendorLocation[]; onChange: (v: VendorLocation[]) => void; t: Record<string, string> }) {
   const addVendor = () => onChange([...vendors, { ...EMPTY_VENDOR }])
   const updateVendor = (i: number, v: VendorLocation) => {
     const next = [...vendors]
@@ -68,19 +72,19 @@ function VendorsEditor({ vendors, onChange }: { vendors: VendorLocation[]; onCha
   return (
     <div className="space-y-2 ml-4 mt-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium">Vendors ({vendors.length})</span>
+        <span className="text-xs font-medium">{t.vendors} ({vendors.length})</span>
         <button onClick={addVendor} className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px]" style={{ background: "var(--accent)", color: "#fff" }}>
-          <Plus size={10} /> Add
+          <Plus size={10} /> {t.add}
         </button>
       </div>
       {vendors.map((v, i) => (
-        <VendorEditor key={i} index={i} value={v} onChange={nv => updateVendor(i, nv)} onDelete={() => removeVendor(i)} />
+        <VendorEditor key={i} index={i} value={v} onChange={nv => updateVendor(i, nv)} onDelete={() => removeVendor(i)} t={t} />
       ))}
     </div>
   )
 }
 
-function CityEditor({ city, onChange, onDelete, countryName }: { city: CityInfo; onChange: (c: CityInfo) => void; onDelete: () => void; countryName: string }) {
+function CityEditor({ city, onChange, onDelete, countryName, t }: { city: CityInfo; onChange: (c: CityInfo) => void; onDelete: () => void; countryName: string; t: Record<string, string> }) {
   const [expanded, setExpanded] = useState(false)
   const [mapsUrl, setMapsUrl] = useState(
     city.lat && city.lng ? `https://www.google.com/maps?q=${city.lat},${city.lng}` : ""
@@ -104,26 +108,26 @@ function CityEditor({ city, onChange, onDelete, countryName }: { city: CityInfo;
         <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1.5 text-sm font-medium">
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           <MapPin size={14} style={{ color: "var(--accent)" }} />
-          {city.name_en || "New City"} / {city.name_ar || "..."}
+          {city.name_en || t.newCity} / {city.name_ar || "..."}
           <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>{city.vendors.length}</span>
         </button>
-        <button onClick={onDelete} className="p-1 rounded" style={{ color: "#EF4444" }} aria-label="Delete city"><Trash2 size={12} /></button>
+        <button onClick={onDelete} className="p-1 rounded" style={{ color: "#EF4444" }} aria-label={t.deleteCity}><Trash2 size={12} /></button>
       </div>
       {expanded && (
         <div className="mt-2 space-y-2 text-xs">
           <div className="grid grid-cols-2 gap-1.5">
-            <input placeholder="Name EN" value={city.name_en} onChange={e => handleNameEn(e.target.value)} className="px-1.5 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-            <input placeholder="Name AR" value={city.name_ar} onChange={e => onChange({ ...city, name_ar: e.target.value })} className="px-1.5 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+            <input placeholder={t.countryNameEn} value={city.name_en} onChange={e => handleNameEn(e.target.value)} className="px-1.5 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+            <input placeholder={t.countryNameAr} value={city.name_ar} onChange={e => onChange({ ...city, name_ar: e.target.value })} className="px-1.5 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             <div className="col-span-2 flex items-center gap-1">
               <Map size={12} style={{ color: "var(--text-muted)" }} />
-              <input placeholder="Paste Google Maps link here" value={mapsUrl} onChange={e => handleMapsUrl(e.target.value)} className="flex-1 px-1.5 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              <input placeholder={t.mapsLink} value={mapsUrl} onChange={e => handleMapsUrl(e.target.value)} className="flex-1 px-1.5 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             </div>
           </div>
           <div className="flex gap-3 text-[10px] px-1" style={{ color: "var(--text-muted)" }}>
-            <span>Slug: <strong>{derivedSlug}</strong></span>
+            <span>{t.categorySlug}: <strong>{derivedSlug}</strong></span>
             <span>Region: <strong>{derivedRegion}</strong></span>
           </div>
-          <VendorsEditor vendors={city.vendors} onChange={v => onChange({ ...city, vendors: v })} />
+          <VendorsEditor vendors={city.vendors} onChange={v => onChange({ ...city, vendors: v })} t={t} />
         </div>
       )}
     </div>
@@ -131,8 +135,11 @@ function CityEditor({ city, onChange, onDelete, countryName }: { city: CityInfo;
 }
 
 export function LocationsSection({ token }: { token?: string }) {
+  const { lang } = useStore(); const t = adminT[lang]
   const [countries, setCountries] = useState<LocationCountry[]>([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const showLoading = useDelayedLoading(loading, 300)
   const [saveMsg, setSaveMsg] = useState("")
   const [editingCountry, setEditingCountry] = useState<LocationCountry | null>(null)
   const [showCountryForm, setShowCountryForm] = useState(false)
@@ -150,12 +157,14 @@ export function LocationsSection({ token }: { token?: string }) {
   useEffect(() => { load() }, [token]) // eslint-disable-line react-hooks/set-state-in-effect,react-hooks/exhaustive-deps
 
   const saveAll = async (data: LocationCountry[]) => {
+    setSaving(true)
     setSaveMsg("")
     try {
       const res = await fetch("/api/admin/locations", { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(data), credentials: "include" })
-      if (res.ok) { setSaveMsg("Saved!"); setCountries(data); setTimeout(() => setSaveMsg(""), 2000) }
-      else setSaveMsg("Failed to save")
-    } catch { setSaveMsg("Network error") }
+      if (res.ok) { setSaveMsg("saved"); setCountries(data); setTimeout(() => setSaveMsg(""), 2000) }
+      else setSaveMsg("failedToSave")
+    } catch { setSaveMsg("networkError") }
+    setSaving(false)
   }
 
   const importStatic = () => saveAll(staticCountries)
@@ -213,43 +222,45 @@ export function LocationsSection({ token }: { token?: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
-          <Globe size={18} /> Locations
+          <Globe size={18} /> {t.locations}
         </h2>
         <div className="flex gap-2">
-          <button onClick={importStatic} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>
-            <Download size={12} /> Import Default
+          <button onClick={importStatic} disabled={saving} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)", opacity: saving ? 0.5 : 1 }}>
+            <Download size={12} /> {t.importDefault}
           </button>
-          <button onClick={addCountry} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: "var(--accent)", color: "#fff" }}>
-            <Plus size={12} /> Add Country
+          <button onClick={addCountry} disabled={saving} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: "var(--accent)", color: "#fff", opacity: saving ? 0.5 : 1 }}>
+            <Plus size={12} /> {t.addCountry}
           </button>
         </div>
       </div>
       <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-        {countries.length} countries · {totalCities} cities · {totalVendors} vendors
+        {countries.length} {t.countries} · {totalCities} {t.cities} · {totalVendors} {t.vendors}
       </p>
 
-      {saveMsg && <p className="text-xs" style={{ color: saveMsg === "Saved!" ? "#10B981" : "#EF4444" }}>{saveMsg}</p>}
+      {saveMsg && <p className="text-xs" style={{ color: saveMsg === "saved" ? "#10B981" : "#EF4444" }}>{saveMsg === "saved" ? t.saved : saveMsg === "failedToSave" ? t.failedToSave : t.networkError}</p>}
 
-      {loading ? (
-        <p className="text-center py-8 text-sm" style={{ color: "var(--text-muted)" }}>Loading...</p>
+      {showLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Spinner size={20} />
+        </div>
       ) : (
         <div className="space-y-3">
           {/* Country editor form */}
           {showCountryForm && editingCountry && (
             <div className="rounded-xl p-3 space-y-2" style={{ border: "1px solid var(--accent)", background: "var(--surface)" }}>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold">{editingCountry.name_en || "New Country"}</span>
+                <span className="text-sm font-bold">{editingCountry.name_en || t.newCountry}</span>
                 <div className="flex gap-1">
-                  <button onClick={saveCountry} className="flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ background: "#10B981", color: "#fff" }}><Check size={12} /> Save</button>
-                  <button onClick={() => { setShowCountryForm(false); setEditingCountry(null) }} className="flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}><X size={12} /> Cancel</button>
+                  <button onClick={saveCountry} disabled={saving} className="flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ background: "#10B981", color: "#fff", opacity: saving ? 0.5 : 1 }}>{saving ? <Spinner size={12} /> : <Check size={12} />} {t.save}</button>
+                  <button onClick={() => { if (!saving) { setShowCountryForm(false); setEditingCountry(null) } }} className="flex items-center gap-1 px-2 py-1 rounded text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}><X size={12} /> {t.cancel}</button>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <input placeholder="Name EN" value={editingCountry.name_en} onChange={e => setEditingCountry({ ...editingCountry, name_en: e.target.value })} className="px-2 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                <input placeholder="Name AR" value={editingCountry.name_ar} onChange={e => setEditingCountry({ ...editingCountry, name_ar: e.target.value })} className="px-2 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.countryNameEn} value={editingCountry.name_en} onChange={e => setEditingCountry({ ...editingCountry, name_en: e.target.value })} className="px-2 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.countryNameAr} value={editingCountry.name_ar} onChange={e => setEditingCountry({ ...editingCountry, name_ar: e.target.value })} className="px-2 py-1 rounded" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
               {editingCountry.name_en && (
-                <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Slug: <strong>{slugify(editingCountry.name_en)}</strong></p>
+                <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{t.categorySlug}: <strong>{slugify(editingCountry.name_en)}</strong></p>
               )}
             </div>
           )}
@@ -262,21 +273,21 @@ export function LocationsSection({ token }: { token?: string }) {
                   <div className="flex items-center gap-2">
                     <Globe size={16} style={{ color: "var(--accent)" }} />
                     <span className="text-sm font-bold">{country.name_en} / {country.name_ar}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>{country.cities.length} cities</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>{country.cities.length} {t.cities}</span>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => addCityToCountry(country.slug)} className="flex items-center gap-1 px-2 py-1 rounded text-[10px]" style={{ background: "var(--surface-2)", color: "var(--accent)" }}>
-                      <Plus size={10} /> City
+                    <button onClick={() => addCityToCountry(country.slug)} disabled={saving} className="flex items-center gap-1 px-2 py-1 rounded text-[10px]" style={{ background: "var(--surface-2)", color: "var(--accent)", opacity: saving ? 0.5 : 1 }}>
+                      <Plus size={10} /> {t.newCity}
                     </button>
-                    <button onClick={() => deleteCountry(country.slug)} className="p-1 rounded" style={{ color: "#EF4444" }} aria-label="Delete country"><Trash2 size={14} /></button>
+                    <button onClick={() => deleteCountry(country.slug)} disabled={saving} className="p-1 rounded" style={{ color: "#EF4444" }} aria-label={t.deleteCountry}><Trash2 size={14} /></button>
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   {country.cities.map((city, ci) => (
-                    <CityEditor key={ci} city={city} onChange={c => updateCity(country.slug, ci, c)} onDelete={() => deleteCity(country.slug, ci)} countryName={country.name_en} />
+                    <CityEditor key={ci} city={city} onChange={c => updateCity(country.slug, ci, c)} onDelete={() => deleteCity(country.slug, ci)} countryName={country.name_en} t={t} />
                   ))}
                   {country.cities.length === 0 && (
-                    <p className="text-[11px] text-center py-3" style={{ color: "var(--text-muted)" }}>No cities yet</p>
+                    <p className="text-[11px] text-center py-3" style={{ color: "var(--text-muted)" }}>{t.noCities}</p>
                   )}
                 </div>
               </div>
@@ -287,11 +298,12 @@ export function LocationsSection({ token }: { token?: string }) {
 
       <ConfirmDialog
         open={!!confirmDelete}
-        title={confirmDelete?.type === "country" ? "Delete Country" : "Delete City"}
-        message={confirmDelete?.type === "country" ? `Delete country "${confirmDelete.slug}" and all its cities?` : "Delete this city?"}
-        confirmLabel="Delete"
+        title={confirmDelete?.type === "country" ? t.deleteCountry : t.deleteCity}
+        message={confirmDelete?.type === "country" ? t.deleteCountryConfirm.replace("{slug}", confirmDelete?.slug || "") : t.deleteCityConfirm}
+        confirmLabel={t.deleteDefault}
         onConfirm={confirmDelete?.type === "country" ? confirmDeleteCountry : confirmDeleteCity}
         onCancel={() => setConfirmDelete(null)}
+        loading={saving}
       />
     </div>
   )

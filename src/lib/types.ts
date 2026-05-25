@@ -75,6 +75,22 @@ export interface LoyaltyTransaction {
   created_at: string
 }
 
+export interface Recipe {
+  id: string
+  title_en: string
+  title_ar: string
+  slug: string
+  excerpt_en: string
+  excerpt_ar: string
+  content_en: string
+  content_ar: string
+  image_url: string
+  author: string
+  published: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -84,6 +100,7 @@ export type Database = {
       settings: { Row: Settings; Insert: Settings; Update: Partial<Settings> }
       customers: { Row: Customer; Insert: Omit<Customer, "id" | "created_at" | "updated_at">; Update: Partial<Omit<Customer, "id">> }
       loyalty_transactions: { Row: LoyaltyTransaction; Insert: Omit<LoyaltyTransaction, "id" | "created_at">; Update: Partial<LoyaltyTransaction> }
+      recipes: { Row: Recipe; Insert: Omit<Recipe, "id" | "created_at" | "updated_at">; Update: Partial<Omit<Recipe, "id">> }
     }
   }
 }

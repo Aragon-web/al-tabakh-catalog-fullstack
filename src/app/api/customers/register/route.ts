@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import crypto from "crypto"
+import { verifyOrigin } from "@/lib/csrf"
 
 export async function POST(req: Request) {
+  const csrf = verifyOrigin(req)
+  if (csrf !== true) return csrf
   try {
     const { name, email, phone, password } = await req.json()
     if (!name || !email || !password) {

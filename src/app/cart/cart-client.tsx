@@ -7,7 +7,7 @@ import { useStore } from "@/lib/store"
 import { useSiteConfig } from "@/lib/theme-provider"
 import { getWhatsAppUrl, downloadCartInvoice, downloadCartExcel } from "@/lib/utils"
 import { useSaveOrder } from "@/lib/use-save-order"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, Home } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -66,6 +66,11 @@ export function CartClient() {
     <>
       <Header />
       <main className="flex-1 max-w-4xl mx-auto px-3 sm:px-4 pt-28 sm:pt-32 pb-8">
+        <nav className="flex items-center gap-1.5 text-xs sm:text-sm mb-4" style={{ color: "var(--text-muted)" }}>
+          <Link href="/" className="hover:underline flex items-center gap-1"><Home size={12} />{lang === "en" ? "Home" : "الرئيسية"}</Link>
+          <span>/</span>
+          <span style={{ color: "var(--text-secondary)" }}>{t.title}</span>
+        </nav>
         <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{t.title}</h1>
 
         {cart.length === 0 ? (

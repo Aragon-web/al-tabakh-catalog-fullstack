@@ -2,7 +2,10 @@
 
 import { useState, useMemo } from "react"
 import { Search, ChevronDown, ChevronUp, Phone, User, FileText } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
 import type { Order } from "@/lib/types"
+import { useStore } from "@/lib/store"
+import { adminT } from "@/lib/admin-translations"
 
 interface Props {
   orders: Order[]
@@ -18,6 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
 const PAGE_SIZE = 20
 
 export function OrdersSection({ orders, token, showToast, onRefresh }: Props) {
+  const { lang } = useStore(); const t = adminT[lang]
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [page, setPage] = useState(0)
@@ -64,7 +68,7 @@ export function OrdersSection({ orders, token, showToast, onRefresh }: Props) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base sm:text-lg font-bold">Orders ({filtered.length})</h2>
+        <h2 className="text-base sm:text-lg font-bold">{t.orders} ({filtered.length})</h2>
       </div>
 
       {/* Status filter tabs */}
@@ -85,15 +89,15 @@ export function OrdersSection({ orders, token, showToast, onRefresh }: Props) {
       {/* Search */}
       <div className="relative mb-3">
         <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-        <input type="text" placeholder="Search by order ID, customer name, or phone..." value={search} onChange={e => { setSearch(e.target.value); setPage(0) }}
-          className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none" aria-label="Search orders"
+        <input type="text" placeholder={t.searchOrders} value={search} onChange={e => { setSearch(e.target.value); setPage(0) }}
+          className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none" aria-label={t.searchOrders}
           style={{ background: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border)" }} />
       </div>
 
       {/* Orders list */}
       <div className="space-y-2">
         {sorted.length === 0 ? (
-          <p className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>No orders found</p>
+          <p className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>{t.noOrders}</p>
         ) : sorted.map(o => {
           const isExpanded = expanded === o.id
           return (
@@ -119,7 +123,7 @@ export function OrdersSection({ orders, token, showToast, onRefresh }: Props) {
                   {/* Customer info */}
                   {(o.customer_name || o.customer_phone || o.notes) && (
                     <div className="pt-3 space-y-1.5">
-                      <h4 className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Customer</h4>
+                      <h4 className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{t.customer}</h4>
                       {o.customer_name && (
                         <div className="flex items-center gap-1.5 text-xs">
                           <User size={12} style={{ color: "var(--text-muted)" }} />
@@ -143,7 +147,7 @@ export function OrdersSection({ orders, token, showToast, onRefresh }: Props) {
 
                   {/* Items */}
                   <div>
-                    <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>Items ({o.items.length})</h4>
+                    <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>{t.items} ({o.items.length})</h4>
                     <div className="space-y-1">
                       {o.items.map((item, i) => (
                         <div key={i} className="flex justify-between text-xs">
@@ -155,13 +159,13 @@ export function OrdersSection({ orders, token, showToast, onRefresh }: Props) {
 
                   {/* Status update */}
                   <div>
-                    <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>Update Status</h4>
+                    <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>{t.updateStatus}</h4>
                     <div className="flex gap-1 flex-wrap">
                       {["pending", "confirmed", "shipped", "delivered", "cancelled"].map(s => (
                         <button key={s} onClick={() => updateStatus(o.id, s)} disabled={updating === o.id || s === o.status}
                           className="text-[10px] px-2 py-1 rounded font-medium transition-opacity disabled:opacity-40"
                           style={{ background: STATUS_COLORS[s] || "#6B7280", color: "#fff", opacity: s === o.status ? 0.4 : 1 }}>
-                          {updating === o.id ? "..." : s}
+                          {updating === o.id ? <Spinner size={12} /> : (t as Record<string, string>)[s] || s}
                         </button>
                       ))}
                     </div>
@@ -169,7 +173,7 @@ export function OrdersSection({ orders, token, showToast, onRefresh }: Props) {
 
                   {/* Order ID + date footer */}
                   <div className="flex justify-between text-[10px]" style={{ color: "var(--text-muted)" }}>
-                    <span>ID: {o.id}</span>
+                    <span>{t.orderId}: {o.id}</span>
                     <span>{new Date(o.created_at).toLocaleString()}</span>
                   </div>
                 </div>
@@ -183,10 +187,10 @@ export function OrdersSection({ orders, token, showToast, onRefresh }: Props) {
       {pageCount > 1 && (
         <div className="flex items-center justify-center gap-2 mt-3">
           <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
-            className="px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)", opacity: page === 0 ? 0.4 : 1 }}>Prev</button>
-          <span className="text-xs" style={{ color: "var(--text-muted)" }}>{page + 1} / {pageCount}</span>
+            className="px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)", opacity: page === 0 ? 0.4 : 1 }}>{t.prev}</button>
+          <span className="text-xs" style={{ color: "var(--text-muted)" }}>{t.pageOf} {page + 1} / {pageCount}</span>
           <button onClick={() => setPage(Math.min(pageCount - 1, page + 1))} disabled={page >= pageCount - 1}
-            className="px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)", opacity: page >= pageCount - 1 ? 0.4 : 1 }}>Next</button>
+            className="px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)", opacity: page >= pageCount - 1 ? 0.4 : 1 }}>{t.next}</button>
         </div>
       )}
     </div>

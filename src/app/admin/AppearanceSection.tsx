@@ -1,13 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Sun, Moon, Loader2, Check, Plus, Trash2, MessageCircle } from "lucide-react"
+import { Sun, Moon, Check, Plus, Trash2, MessageCircle } from "lucide-react"
 import { ACCENT_THEMES, BASE_PALETTES } from "@/lib/theme-provider"
 import type { Mode, Preset, WhatsAppConfig, SocialLink } from "@/lib/theme-provider"
+import { Spinner } from "@/components/Spinner"
+import { useStore } from "@/lib/store"
+import { adminT } from "@/lib/admin-translations"
 
 const THEME_KEYS = Object.keys(ACCENT_THEMES) as Preset[]
 
 export function AppearanceSection({ token, showToast }: { token: string; showToast: (type: "success" | "error", text: string) => void }) {
+  const { lang } = useStore(); const t = adminT[lang]
   const [mode, setMode] = useState<Mode>("dark")
   const [preset, setPreset] = useState<Preset>("default")
   const [customAccent, setCustomAccent] = useState("")
@@ -19,6 +23,7 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
   const [waSaving, setWaSaving] = useState(false)
   const [socialData, setSocialData] = useState<SocialLink[]>([])
   const [socialSaving, setSocialSaving] = useState(false)
+  const [togglingSections, setTogglingSections] = useState<Set<string>>(new Set())
 
   function applyTheme(m: Mode, p: Preset | "custom", accent: string) {
     const palette = BASE_PALETTES[m]
@@ -83,9 +88,9 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
     const value = { mode: m, preset: p, accent: a, accent_light: a + "99", accent_dark: a }
     try {
       const res = await fetch("/api/admin/settings", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ key: "theme", value }) })
-      if (res.ok) { applyTheme(m, p, a); showToast("success", "Theme saved") }
-      else showToast("error", "Failed to save")
-    } catch { showToast("error", "Network error") }
+      if (res.ok) { applyTheme(m, p, a); showToast("success", t.saveAppearance) }
+      else showToast("error", t.failedToSave)
+    } catch { showToast("error", t.networkError) }
     setSaving(false)
   }
 
@@ -101,9 +106,9 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
     setWaSaving(true)
     try {
       const res = await fetch("/api/admin/settings", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ key: "whatsapp", value: whatsappData }) })
-      if (res.ok) showToast("success", "WhatsApp settings saved")
-      else showToast("error", "Failed to save")
-    } catch { showToast("error", "Network error") }
+      if (res.ok) showToast("success", t.saveWhatsApp)
+      else showToast("error", t.failedToSave)
+    } catch { showToast("error", t.networkError) }
     setWaSaving(false)
   }
 
@@ -111,9 +116,9 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
     setSocialSaving(true)
     try {
       const res = await fetch("/api/admin/settings", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ key: "social", value: socialData }) })
-      if (res.ok) showToast("success", "Social links saved")
-      else showToast("error", "Failed to save")
-    } catch { showToast("error", "Network error") }
+      if (res.ok) showToast("success", t.saveSocial)
+      else showToast("error", t.failedToSave)
+    } catch { showToast("error", t.networkError) }
     setSocialSaving(false)
   }
 
@@ -149,24 +154,26 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
   }
 
   async function toggleSection(key: string, visible: boolean) {
+    setTogglingSections(prev => new Set([...prev, key]))
     try {
       const res = await fetch("/api/admin/sections", { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ key, visible }) })
       if (res.ok) { setSections(prev => prev.map(s => s.key === key ? { ...s, visible } : s)); showToast("success", `${key} ${visible ? "shown" : "hidden"}`) }
     } catch {}
+    setTogglingSections(prev => { const next = new Set(prev); next.delete(key); return next })
   }
 
-  if (loading) return <div className="flex justify-center py-12"><div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} /></div>
+  if (loading) return <div className="flex justify-center py-12"><Spinner size={20} /></div>
 
   return (
     <div className="space-y-8">
       {/* Dark/Light Toggle */}
       <div>
-        <h2 className="text-base sm:text-lg font-bold mb-3">Mode</h2>
+        <h2 className="text-base sm:text-lg font-bold mb-3">{t.mode}</h2>
         <button onClick={toggleMode} disabled={saving}
           className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
           {mode === "dark" ? <Moon size={18} /> : <Sun size={18} />}
-          <span className="text-sm font-medium">{mode === "dark" ? "Dark Mode" : "Light Mode"}</span>
+          <span className="text-sm font-medium">{mode === "dark" ? t.darkMode : t.lightMode}</span>
           <div className="relative w-11 h-6 rounded-full ml-auto" style={{ background: mode === "dark" ? "var(--accent)" : "var(--surface-3)" }}>
             <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm" style={{ transform: mode === "dark" ? "translateX(22px)" : "translateX(2px)" }} />
           </div>
@@ -175,7 +182,7 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
 
       {/* Accent Color */}
       <div>
-        <h2 className="text-base sm:text-lg font-bold mb-3">Accent Color</h2>
+        <h2 className="text-base sm:text-lg font-bold mb-3">{t.accentColor}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           {THEME_KEYS.map(key => {
             const t = ACCENT_THEMES[key]
@@ -203,7 +210,7 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
           <div className="flex items-center gap-3 flex-wrap">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" checked={useCustom} onChange={e => { setUseCustom(e.target.checked); if (e.target.checked) setCustomAccent(ACCENT_THEMES[preset].accent) }} />
-              Custom
+              {t.custom}
             </label>
             {useCustom && (
               <>
@@ -213,7 +220,7 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
                   className="w-24 px-2 py-1.5 rounded text-xs outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
                 <button onClick={() => saveTheme(mode, "custom", customAccent)} disabled={saving}
                   className="px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1" style={{ background: "var(--accent)", color: "#fff", opacity: saving ? 0.7 : 1 }}>
-                  {saving && <Loader2 size={10} className="animate-spin" />} Apply
+                  {saving && <Spinner size={10} />} {t.apply}
                 </button>
               </>
             )}
@@ -223,13 +230,13 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
 
       {/* Section Visibility */}
       <div>
-        <h2 className="text-base sm:text-lg font-bold mb-3">Section Visibility</h2>
+        <h2 className="text-base sm:text-lg font-bold mb-3">{t.sectionVisibility}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {sections.map(s => (
             <div key={s.key} className="flex items-center justify-between p-3 rounded-lg" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <span className="text-sm">{s.label}</span>
-              <button onClick={() => toggleSection(s.key, !s.visible)}
-                className="relative w-11 h-6 rounded-full transition-colors" style={{ background: s.visible ? "var(--accent)" : "var(--surface-3)" }}>
+              <button onClick={() => toggleSection(s.key, !s.visible)} disabled={togglingSections.has(s.key)}
+                className="relative w-11 h-6 rounded-full transition-colors" style={{ background: s.visible ? "var(--accent)" : "var(--surface-3)", opacity: togglingSections.has(s.key) ? 0.5 : 1 }}>
                 <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm" style={{ transform: s.visible ? "translateX(22px)" : "translateX(2px)" }} />
               </button>
             </div>
@@ -241,20 +248,20 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
       <div>
         <div className="flex items-center gap-2 mb-3">
           <MessageCircle size={18} style={{ color: "var(--wa)" }} />
-          <h2 className="text-base sm:text-lg font-bold">WhatsApp Numbers</h2>
+          <h2 className="text-base sm:text-lg font-bold">{t.whatsappNumbers}</h2>
         </div>
         <div className="p-4 rounded-xl space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
           {whatsappData.numbers.map((n, idx) => (
             <div key={idx} className="flex items-start gap-2">
               <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input value={n.label} onChange={e => updateWaNumber(idx, "label", e.target.value)}
-                  placeholder="Label (e.g. Sales)"
-                  className="px-3 py-2 rounded-lg text-xs outline-none" aria-label={`Number ${idx + 1} label`} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                  placeholder={t.labelPlaceholder}
+                  className="px-3 py-2 rounded-lg text-xs outline-none" aria-label={t.labelPlaceholder} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
                 <div className="flex items-center gap-2">
                   <input value={n.phone} onChange={e => updateWaNumber(idx, "phone", e.target.value)}
-                    placeholder="+964XXXXXXXXX"
-                    className="flex-1 px-3 py-2 rounded-lg text-xs outline-none font-mono" aria-label={`Number ${idx + 1} phone`} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                  <button onClick={() => removeWaNumber(idx)} className="p-2 rounded-lg flex-shrink-0" style={{ color: "var(--accent)" }} aria-label="Remove number">
+                    placeholder={t.phonePlaceholder}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs outline-none font-mono" aria-label={t.phonePlaceholder} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                  <button onClick={() => removeWaNumber(idx)} className="p-2 rounded-lg flex-shrink-0" style={{ color: "var(--accent)" }} aria-label={t.deleteDefault}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -262,12 +269,12 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
             </div>
           ))}
           <button onClick={addWaNumber} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-opacity" style={{ color: "var(--accent)", background: "var(--surface-2)" }}>
-            <Plus size={12} /> Add Number
+            <Plus size={12} /> {t.addNumber}
           </button>
 
           {whatsappData.numbers.length > 0 && (
             <div>
-              <p className="text-[10px] font-medium uppercase mb-1.5" style={{ color: "var(--text-muted)" }}>Order Target Number</p>
+                <p className="text-[10px] font-medium uppercase mb-1.5" style={{ color: "var(--text-muted)" }}>{t.orderTargetNumber}</p>
               <select value={whatsappData.orderTarget} onChange={e => setWhatsappData(prev => ({ ...prev, orderTarget: e.target.value }))}
                 className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
                 {whatsappData.numbers.map((n, idx) => (
@@ -279,8 +286,8 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
 
           <button onClick={saveWhatsApp} disabled={waSaving}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity" style={{ background: "var(--wa)", color: "#fff", opacity: waSaving ? 0.7 : 1 }}>
-            {waSaving && <Loader2 size={10} className="animate-spin" />}
-            <MessageCircle size={11} /> Save WhatsApp Settings
+            {waSaving && <Spinner size={10} />}
+            <MessageCircle size={11} /> {t.saveWhatsApp}
           </button>
         </div>
       </div>
@@ -289,29 +296,29 @@ export function AppearanceSection({ token, showToast }: { token: string; showToa
       <div>
         <h2 className="text-base sm:text-lg font-bold mb-3 flex items-center gap-2">
           <span style={{ color: "var(--accent)" }}>@</span>
-          Social Media Links
+          {t.socialLinks}
         </h2>
         <div className="p-4 rounded-xl space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Platform: facebook, instagram, youtube, twitter, tiktok, website</p>
+          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{t.socialHint}</p>
           {socialData.map((s, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <input value={s.platform} onChange={e => updateSocial(idx, "platform", e.target.value)}
-                placeholder="Platform" className="w-28 px-2 py-2 rounded-lg text-xs outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                placeholder={t.platform} className="w-28 px-2 py-2 rounded-lg text-xs outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <input value={s.url} onChange={e => updateSocial(idx, "url", e.target.value)}
-                placeholder="https://..." className="flex-1 px-2 py-2 rounded-lg text-xs outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-              <button onClick={() => removeSocial(idx)} className="p-2 rounded-lg flex-shrink-0" style={{ color: "var(--accent)" }} aria-label="Remove social link">
+                placeholder={t.urlPlaceholder} className="flex-1 px-2 py-2 rounded-lg text-xs outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              <button onClick={() => removeSocial(idx)} className="p-2 rounded-lg flex-shrink-0" style={{ color: "var(--accent)" }} aria-label={t.deleteDefault}>
                 <Trash2 size={14} />
               </button>
             </div>
           ))}
           <div className="flex gap-2">
             <button onClick={addSocial} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg" style={{ color: "var(--accent)", background: "var(--surface-2)" }}>
-              <Plus size={12} /> Add Link
+              <Plus size={12} /> {t.addLink}
             </button>
             <button onClick={saveSocial} disabled={socialSaving}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: "var(--accent)", color: "#fff", opacity: socialSaving ? 0.7 : 1 }}>
-              {socialSaving && <Loader2 size={10} className="animate-spin" />}
-              Save Social Links
+              {socialSaving && <Spinner size={10} />}
+              {t.saveSocial}
             </button>
           </div>
         </div>

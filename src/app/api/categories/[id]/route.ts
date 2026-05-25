@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import { verifyAuth } from "@/lib/api-auth"
+import { logAdminAction } from "@/lib/audit"
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = verifyAuth(req)
@@ -15,6 +16,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       console.error("PUT /api/categories error:", error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+    logAdminAction("update", "category", id, { changes: body })
     return NextResponse.json(data)
   } catch (e) {
     console.error("PUT /api/categories exception:", e)
@@ -35,6 +37,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       console.error("DELETE /api/categories error:", error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+    logAdminAction("delete", "category", id, {})
     return NextResponse.json({ success: true })
   } catch (e) {
     console.error("DELETE /api/categories exception:", e)

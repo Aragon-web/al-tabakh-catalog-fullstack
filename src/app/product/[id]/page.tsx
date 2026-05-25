@@ -5,6 +5,13 @@ import { ProductClient } from "./client-page"
 import type { Product, Category } from "@/lib/types"
 import { notFound } from "next/navigation"
 
+export const revalidate = 3600
+
+export async function generateStaticParams() {
+  const products = await fetchProducts()
+  return products.map(p => ({ id: p.id }))
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
   const products = await fetchProducts()

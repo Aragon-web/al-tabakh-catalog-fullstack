@@ -2,12 +2,13 @@
 
 import { useStore } from "@/lib/store"
 import { ChevronDown } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
 import { useSiteConfig } from "@/lib/theme-provider"
 import dynamic from "next/dynamic"
 
 const Spline = dynamic(() => import("@splinetool/react-spline"), {
   ssr: false,
-  loading: () => <div className="absolute inset-0" style={{ background: "var(--surface)" }} />,
+  loading: () => <div className="absolute inset-0 flex items-center justify-center animate-pulse" style={{ background: "var(--surface-2)" }}><Spinner size={24} /></div>,
 })
 
 export function HeroSection() {

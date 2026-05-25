@@ -5,7 +5,8 @@ import { useStore } from "@/lib/store"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { ProductCard } from "@/components/ProductCard"
-import { Tag, Percent } from "lucide-react"
+import { Tag, Percent, Home } from "lucide-react"
+import Link from "next/link"
 
 export function CampaignClient() {
   const { lang, products } = useStore()
@@ -21,13 +22,18 @@ export function CampaignClient() {
       <Header />
       <main style={{ background: "var(--bg)" }}>
         <div className="pt-20 sm:pt-24 pb-6" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6">
+            <nav className="flex items-center gap-1.5 text-xs sm:text-sm mb-3" style={{ color: "var(--text-muted)" }}>
+              <Link href="/" className="hover:underline flex items-center gap-1"><Home size={12} />{lang === "en" ? "Home" : "الرئيسية"}</Link>
+              <span>/</span>
+              <span style={{ color: "var(--text-secondary)" }}>{t.title}</span>
+            </nav>
             <div className="flex items-center justify-center gap-2 mb-3">
               <Percent size={22} style={{ color: "var(--wa)" }} />
               <Tag size={22} style={{ color: "var(--accent)" }} />
             </div>
-            <h1 className="heading text-2xl sm:text-3xl font-bold mb-2">{t.title}</h1>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{t.subtitle}</p>
+            <h1 className="heading text-2xl sm:text-3xl font-bold mb-2 text-center">{t.title}</h1>
+            <p className="text-sm text-center" style={{ color: "var(--text-secondary)" }}>{t.subtitle}</p>
           </div>
         </div>
 

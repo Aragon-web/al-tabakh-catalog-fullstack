@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import { verifyAuth } from "@/lib/api-auth"
+import { verifyOrigin } from "@/lib/csrf"
+import { sendOrderNotification } from "@/lib/email"
 
 export async function GET(req: Request) {
   const auth = verifyAuth(req)
@@ -17,6 +19,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const csrf = verifyOrigin(req)
+  if (csrf !== true) return csrf
   try {
     const body = await req.json()
     if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
@@ -36,12 +40,14 @@ export async function POST(req: Request) {
       total: body.total || 0,
       customer_name: body.customer_name || "",
       customer_phone: body.customer_phone || "",
+      customer_email: body.customer_email || "",
       notes: body.notes || "",
       status: "pending",
       customer_id: customerId,
     }).select().single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    sendOrderNotification(body.items, body.customer_name || "", body.customer_phone || "", body.notes || "", data.id)
     return NextResponse.json(data)
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })

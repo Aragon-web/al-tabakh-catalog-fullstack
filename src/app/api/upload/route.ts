@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { verifyAuth } from "@/lib/api-auth"
+import sharp from "sharp"
 
 export async function POST(req: Request) {
   try {
@@ -23,7 +24,16 @@ export async function POST(req: Request) {
     }
 
     const buf = Buffer.from(await file.arrayBuffer())
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+
+    let uploadBuf = buf
+    let contentType = file.type
+    let filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+
+    if (ext !== "gif" && ext !== "webp") {
+      uploadBuf = await sharp(buf).webp({ quality: 80 }).toBuffer()
+      contentType = "image/webp"
+      filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -40,7 +50,7 @@ export async function POST(req: Request) {
 
     const { error: uploadError } = await supabase.storage
       .from("product-images")
-      .upload(filename, buf, { contentType: file.type, upsert: true })
+      .upload(filename, uploadBuf, { contentType, upsert: true })
 
     if (uploadError) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 })

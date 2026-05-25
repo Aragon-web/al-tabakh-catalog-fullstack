@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import { verifyAuth } from "@/lib/api-auth"
+import { logAdminAction } from "@/lib/audit"
 
 export async function GET() {
   try {
@@ -29,6 +30,7 @@ export async function POST(req: Request) {
       console.error("POST /api/categories error:", error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+    logAdminAction("create", "category", data?.id || "", { name: body.name_en })
     return NextResponse.json(data)
   } catch (e) {
     console.error("POST /api/categories exception:", e)

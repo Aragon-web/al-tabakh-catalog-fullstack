@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import { verifyAuth } from "@/lib/api-auth"
+import { logAdminAction } from "@/lib/audit"
 import { COUNTRIES as staticCountries } from "@/lib/cities"
 
 export async function GET(req: NextRequest) {
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       { key: "locations_countries", value: body, updated_at: new Date().toISOString() },
       { onConflict: "key" }
     )
+    logAdminAction("save", "locations", "", { countryCount: Array.isArray(body) ? body.length : 0 })
     return NextResponse.json({ ok: true })
   } catch { return NextResponse.json({ error: "Failed to save" }, { status: 500 }) }
 }

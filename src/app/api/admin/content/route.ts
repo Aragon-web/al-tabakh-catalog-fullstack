@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import { verifyAuth } from "@/lib/api-auth"
+import { logAdminAction } from "@/lib/audit"
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
@@ -33,6 +34,7 @@ export async function PATCH(req: Request) {
     const client = getAdminClient()
     const { data, error } = await client.from("page_content").upsert({ page, section, content }).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    logAdminAction("update", "page_content", `${page}/${section}`, {})
     return NextResponse.json(data)
   } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }) }
 }
@@ -46,6 +48,7 @@ export async function DELETE(req: Request) {
     const client = getAdminClient()
     const { error } = await client.from("page_content").delete().eq("page", page).eq("section", section)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    logAdminAction("delete", "page_content", `${page}/${section}`, {})
     return NextResponse.json({ success: true })
   } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }) }
 }

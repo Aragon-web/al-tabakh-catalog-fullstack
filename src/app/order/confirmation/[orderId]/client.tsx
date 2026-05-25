@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store"
 import { useSiteConfig } from "@/lib/theme-provider"
 import { getWhatsAppUrl } from "@/lib/utils"
 import { CheckCircle, Package, Clock, ArrowLeft } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
 import Link from "next/link"
 import { STORAGE_KEYS } from "@/lib/constants"
 
@@ -62,8 +63,9 @@ export function OrderConfirmationClient({ orderId }: { orderId: string }) {
         </div>
 
         {!order && (
-          <div className="text-center py-8" style={{ color: "var(--text-muted)" }}>
-            <p className="text-sm">{lang === "en" ? "Loading order details..." : "جاري تحميل تفاصيل الطلب..."}</p>
+          <div className="flex flex-col items-center justify-center py-8 gap-3">
+            <Spinner size={24} />
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>{lang === "en" ? "Loading order details..." : "جاري تحميل تفاصيل الطلب..."}</p>
           </div>
         )}
 

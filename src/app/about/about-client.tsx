@@ -3,6 +3,8 @@
 import { useStore } from "@/lib/store"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
+import { Home } from "lucide-react"
+import Link from "next/link"
 
 export function AboutClient() {
   const { lang, products, categories } = useStore()
@@ -65,6 +67,14 @@ export function AboutClient() {
 
   return (
     <> <Header /> <main style={{ background: "var(--bg)" }}>
+      {/* Breadcrumb */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32">
+        <nav className="flex items-center gap-1.5 text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
+          <Link href="/" className="hover:underline flex items-center gap-1"><Home size={12} />{lang === "en" ? "Home" : "الرئيسية"}</Link>
+          <span>/</span>
+          <span style={{ color: "var(--text-secondary)" }}>{t.title}</span>
+        </nav>
+      </div>
       {/* Hero */}
       <div className="pt-20 sm:pt-24 pb-12 sm:pb-16" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">

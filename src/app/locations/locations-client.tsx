@@ -5,7 +5,10 @@ import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { useStore } from "@/lib/store"
 import { type LocationCountry, type CityInfo } from "@/lib/cities"
-import { MapPin, Phone, Store, Navigation, Globe } from "lucide-react"
+import { MapPin, Phone, Store, Navigation, Globe, Home } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
+import { useDelayedLoading } from "@/lib/useDelayedLoading"
+import Link from "next/link"
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
@@ -47,6 +50,7 @@ export function LocationsClient() {
   const [selectedCity, setSelectedCity] = useState<CityInfo | null>(null)
   const [activeVendor, setActiveVendor] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const showLoading = useDelayedLoading(loading, 300)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
 
@@ -98,7 +102,7 @@ export function LocationsClient() {
     return () => { if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null } }
   }, [])
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} /></div>
+  if (showLoading) return <div className="min-h-screen flex items-center justify-center"><Spinner size={24} /></div>
 
   const t = {
     en: { title: "Our Locations", subtitle: "Find Al-Tabakh vendors near you", vendors: "Vendors", call: "Call", directions: "Directions", noVendors: "No vendors listed yet", selectCountry: "Select Country", selectCity: "Select City" },
@@ -109,13 +113,18 @@ export function LocationsClient() {
     <><Header />
     <main style={{ background: "var(--bg)" }}>
       <div className="pt-20 sm:pt-24 pb-6" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <nav className="flex items-center gap-1.5 text-xs sm:text-sm mb-3" style={{ color: "var(--text-muted)" }}>
+            <Link href="/" className="hover:underline flex items-center gap-1"><Home size={12} />{lang === "en" ? "Home" : "الرئيسية"}</Link>
+            <span>/</span>
+            <span style={{ color: "var(--text-secondary)" }}>{t.title}</span>
+          </nav>
           <div className="flex items-center justify-center gap-2 mb-3">
             <MapPin size={22} style={{ color: "var(--accent)" }} />
             <Store size={22} style={{ color: "var(--wa)" }} />
           </div>
-          <h1 className="heading text-2xl sm:text-3xl font-bold mb-1">{t.title}</h1>
-          <p className="text-xs sm:text-sm" style={{ color: "var(--text-secondary)" }}>{t.subtitle}</p>
+          <h1 className="heading text-2xl sm:text-3xl font-bold mb-1 text-center">{t.title}</h1>
+          <p className="text-xs sm:text-sm text-center" style={{ color: "var(--text-secondary)" }}>{t.subtitle}</p>
         </div>
       </div>
 

@@ -2,10 +2,13 @@
 
 import { useState, useMemo } from "react"
 import { useFocusTrap } from "@/lib/useFocusTrap"
-import { Plus, Edit3, Trash2, Search, X, Check, Loader2 } from "lucide-react"
+import { Plus, Edit3, Trash2, Search, X, Check } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
 import type { Product, Category } from "@/lib/types"
 import { ConfirmDialog } from "./ConfirmDialog"
 import { UploadDropzone } from "./UploadDropzone"
+import { useStore } from "@/lib/store"
+import { adminT } from "@/lib/admin-translations"
 
 interface Props {
   products: Product[]
@@ -22,6 +25,7 @@ function generateId() {
 const PAGE_SIZE = 25
 
 export function ProductsSection({ products, categories, token, showToast, onRefresh }: Props) {
+  const { lang } = useStore(); const t = adminT[lang]
   const [search, setSearch] = useState("")
   const [catFilter, setCatFilter] = useState("all")
   const [page, setPage] = useState(0)
@@ -73,13 +77,13 @@ function newProduct() {
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(editProduct) })
       if (res.ok) {
         setEditProduct(null)
-        showToast("success", exists ? "Product updated" : "Product created")
+        showToast("success", exists ? t.productUpdated : t.productCreated)
         onRefresh()
       } else {
         const err = await res.json()
-        showToast("error", err.error || "Failed to save")
+        showToast("error", err.error || t.failedToSave)
       }
-    } catch { showToast("error", "Network error") }
+    } catch { showToast("error", t.networkError) }
     setSaving(false)
   }
 
@@ -87,8 +91,8 @@ function newProduct() {
     try {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
       if (res.ok) { showToast("success", "Product deleted"); onRefresh() }
-      else { const err = await res.json(); showToast("error", err.error || "Delete failed") }
-    } catch { showToast("error", "Network error") }
+      else { const err = await res.json(); showToast("error", err.error || t.failedToSave) }
+    } catch { showToast("error", t.networkError) }
     setConfirmDelete(null)
   }
 
@@ -96,9 +100,9 @@ function newProduct() {
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base sm:text-lg font-bold">Products ({filtered.length})</h2>
+        <h2 className="text-base sm:text-lg font-bold">{t.products} ({filtered.length})</h2>
         <button onClick={newProduct} className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm" style={{ background: "var(--accent)", color: "#fff" }}>
-          <Plus size={14} /> Add
+          <Plus size={14} /> {t.add}
         </button>
       </div>
 
@@ -106,14 +110,14 @@ function newProduct() {
       <div className="flex gap-2 mb-3">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-          <input type="text" placeholder="Search by name..." value={search} onChange={e => { setSearch(e.target.value); setPage(0) }}
-            className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none" aria-label="Search products"
+          <input type="text" placeholder={t.searchByName} value={search} onChange={e => { setSearch(e.target.value); setPage(0) }}
+            className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none" aria-label={t.searchByName}
             style={{ background: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border)" }} />
         </div>
         <select value={catFilter} onChange={e => { setCatFilter(e.target.value); setPage(0) }}
           className="px-3 py-2 rounded-lg text-sm outline-none max-w-[160px]"
           style={{ background: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border)" }}>
-          <option value="all">All categories</option>
+          <option value="all">{t.allCategories}</option>
           {categories.filter(c => c.id !== "all").map(c => (
             <option key={c.id} value={c.id}>{c.name_en}</option>
           ))}
@@ -123,27 +127,27 @@ function newProduct() {
       {/* Product list */}
       <div className="space-y-1.5 max-h-[65vh] overflow-y-auto">
         {paged.length === 0 ? (
-          <p className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>No products found</p>
+          <p className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>{t.noProducts}</p>
         ) : paged.map(p => {
           const cat = catMap.get(p.category_id || "")
           return (
             <div key={p.id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-2.5 rounded-lg" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg overflow-hidden flex-shrink-0" style={{ background: "var(--surface-2)" }}>
-                {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" onError={e => (e.target as HTMLImageElement).style.display = "none"} alt="" /> : null} {/* eslint-disable-line @next/next/no-img-element */}
+                {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" onError={e => (e.target as HTMLImageElement).style.display = "none"} alt="" loading="lazy" /> : null} {/* eslint-disable-line @next/next/no-img-element */}
               </div>
               <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-xs sm:text-sm font-medium truncate">{p.name_en}</p>
-                    {p.is_new && <span className="text-[9px] px-1 py-0.5 rounded font-bold flex-shrink-0" style={{ background: "var(--accent)", color: "#fff" }}>NEW</span>}
-                  {p.stock === 0 && <span className="text-[9px] px-1 py-0.5 rounded font-bold flex-shrink-0" style={{ background: "#EF4444", color: "#fff" }}>OOS</span>}
+                    {p.is_new && <span className="text-[9px] px-1 py-0.5 rounded font-bold flex-shrink-0" style={{ background: "var(--accent)", color: "#fff" }}>{t.newBadge}</span>}
+                  {p.stock === 0 && <span className="text-[9px] px-1 py-0.5 rounded font-bold flex-shrink-0" style={{ background: "#EF4444", color: "#fff" }}>{t.oosBadge}</span>}
                 </div>
                 <div className="flex items-center gap-2 text-[10px]" style={{ color: "var(--text-muted)" }}>
                   <span>{cat?.name_en || "—"}</span>
                   {p.stock != null && <span>Stock: {p.stock}</span>}
                 </div>
                 </div>
-                <button onClick={() => setEditProduct(p)} className="p-1.5 rounded" style={{ color: "var(--text-muted)" }} aria-label="Edit product"><Edit3 size={13} /></button>
-              <button onClick={() => setConfirmDelete(p.id)} className="p-1.5 rounded" style={{ color: "var(--text-muted)" }} aria-label="Delete product"><Trash2 size={13} /></button>
+                <button onClick={() => setEditProduct(p)} className="p-1.5 rounded" style={{ color: "var(--text-muted)" }} aria-label={t.editProduct}><Edit3 size={13} /></button>
+              <button onClick={() => setConfirmDelete(p.id)} className="p-1.5 rounded" style={{ color: "var(--text-muted)" }} aria-label={t.deleteProduct}><Trash2 size={13} /></button>
             </div>
           )
         })}
@@ -153,10 +157,10 @@ function newProduct() {
       {pageCount > 1 && (
         <div className="flex items-center justify-center gap-2 mt-3">
           <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
-            className="px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)", opacity: page === 0 ? 0.4 : 1 }}>Prev</button>
-          <span className="text-xs" style={{ color: "var(--text-muted)" }}>{page + 1} / {pageCount}</span>
+            className="px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)", opacity: page === 0 ? 0.4 : 1 }}>{t.prev}</button>
+          <span className="text-xs" style={{ color: "var(--text-muted)" }}>{t.pageOf} {page + 1} / {pageCount}</span>
           <button onClick={() => setPage(Math.min(pageCount - 1, page + 1))} disabled={page >= pageCount - 1}
-            className="px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)", opacity: page >= pageCount - 1 ? 0.4 : 1 }}>Next</button>
+            className="px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)", opacity: page >= pageCount - 1 ? 0.4 : 1 }}>{t.next}</button>
         </div>
       )}
 
@@ -166,44 +170,44 @@ function newProduct() {
           onClick={() => !saving && setEditProduct(null)} onKeyDown={e => { if (e.key === "Escape" && !saving) setEditProduct(null) }} role="dialog" aria-modal="true" tabIndex={-1}>
           <div ref={productTrapRef} className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6" style={{ background: "var(--surface)" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold">{products.find(p => p.id === editProduct.id) ? "Edit Product" : "Add Product"}</h3>
-              <button onClick={() => !saving && setEditProduct(null)} className="p-1 rounded" style={{ color: "var(--text-muted)" }} aria-label="Close"><X size={16} /></button>
+              <h3 className="text-base font-bold">{products.find(p => p.id === editProduct.id) ? t.editProduct : t.addProduct}</h3>
+              <button onClick={() => !saving && setEditProduct(null)} className="p-1 rounded" style={{ color: "var(--text-muted)" }} aria-label={t.cancel}><X size={16} /></button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <input placeholder="Name (EN) *" value={editProduct.name_en} onChange={e => setEditProduct({ ...editProduct, name_en: e.target.value })}
-                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Product name English" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                <input placeholder="Name (AR) *" value={editProduct.name_ar} onChange={e => setEditProduct({ ...editProduct, name_ar: e.target.value })}
-                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Product name Arabic" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.nameEn} value={editProduct.name_en} onChange={e => setEditProduct({ ...editProduct, name_en: e.target.value })}
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.nameEn} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.nameAr} value={editProduct.name_ar} onChange={e => setEditProduct({ ...editProduct, name_ar: e.target.value })}
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.nameAr} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input placeholder="Description (EN)" value={editProduct.desc_en} onChange={e => setEditProduct({ ...editProduct, desc_en: e.target.value })}
-                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Description English" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                <input placeholder="Description (AR)" value={editProduct.desc_ar} onChange={e => setEditProduct({ ...editProduct, desc_ar: e.target.value })}
-                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Description Arabic" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.descEn} value={editProduct.desc_en} onChange={e => setEditProduct({ ...editProduct, desc_en: e.target.value })}
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.descEn} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.descAr} value={editProduct.desc_ar} onChange={e => setEditProduct({ ...editProduct, desc_ar: e.target.value })}
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.descAr} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input placeholder="Weight" value={editProduct.weight} onChange={e => setEditProduct({ ...editProduct, weight: e.target.value })}
-                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Weight" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                <input placeholder="Pcs/Carton" value={editProduct.pieces_per_carton} onChange={e => setEditProduct({ ...editProduct, pieces_per_carton: e.target.value })}
-                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Pieces per carton" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                <input placeholder="Stock" type="number" min="0" value={editProduct.stock ?? ""} onChange={e => setEditProduct({ ...editProduct, stock: e.target.value === "" ? null : parseInt(e.target.value) || 0 })}
-                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Stock quantity" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.weight} value={editProduct.weight} onChange={e => setEditProduct({ ...editProduct, weight: e.target.value })}
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.weight} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.pcsCarton} value={editProduct.pieces_per_carton} onChange={e => setEditProduct({ ...editProduct, pieces_per_carton: e.target.value })}
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.pcsCarton} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.stock} type="number" min="0" value={editProduct.stock ?? ""} onChange={e => setEditProduct({ ...editProduct, stock: e.target.value === "" ? null : parseInt(e.target.value) || 0 })}
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.stock} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
               <div className="space-y-2">
                 <UploadDropzone currentUrl={editProduct.image_url} onUpload={(url) => setEditProduct({...editProduct, image_url: url})} token={token} />
-                <input placeholder="Image URL" value={editProduct.image_url} onChange={e => setEditProduct({ ...editProduct, image_url: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Image URL" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.imageUrl} value={editProduct.image_url} onChange={e => setEditProduct({ ...editProduct, image_url: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.imageUrl} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
               <select value={editProduct.category_id || "all"} onChange={e => setEditProduct({ ...editProduct, category_id: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Category" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
+                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.category} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name_en}</option>)}
               </select>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={editProduct.is_new} onChange={e => setEditProduct({ ...editProduct, is_new: e.target.checked })} />
                   {editProduct.is_new ? <Check size={14} style={{ color: "var(--accent)" }} /> : <div className="w-3.5 h-3.5 rounded" style={{ border: "1px solid var(--border)" }} />}
-                  NEW badge
+                  {t.newBadge}
                 </label>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={editProduct.is_featured} onChange={e => setEditProduct({ ...editProduct, is_featured: e.target.checked })} />
@@ -213,10 +217,10 @@ function newProduct() {
               </div>
             </div>
             <div className="flex gap-3 mt-5">
-              <button onClick={() => !saving && setEditProduct(null)} className="flex-1 py-3 rounded-lg text-sm" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button onClick={() => !saving && setEditProduct(null)} className="flex-1 py-3 rounded-lg text-sm" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>{t.cancel}</button>
               <button onClick={saveProduct} disabled={saving} className="flex-1 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5" style={{ background: "var(--accent)", color: "#fff", opacity: saving ? 0.7 : 1 }}>
-                {saving && <Loader2 size={14} className="animate-spin" />}
-                {saving ? "Saving..." : "Save"}
+                {saving && <Spinner size={14} />}
+                {saving ? t.saving : t.save}
               </button>
             </div>
           </div>
@@ -226,9 +230,9 @@ function newProduct() {
       {/* Delete confirmation */}
       <ConfirmDialog
         open={!!confirmDelete}
-        title="Delete Product"
-        message="Are you sure? This cannot be undone."
-        confirmLabel="Delete"
+        title={t.deleteProduct}
+        message={t.deleteConfirm}
+        confirmLabel={t.deleteDefault}
         onConfirm={() => confirmDelete && deleteProduct(confirmDelete)}
         onCancel={() => setConfirmDelete(null)}
       />

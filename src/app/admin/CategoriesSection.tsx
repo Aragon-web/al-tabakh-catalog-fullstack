@@ -2,11 +2,14 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { useFocusTrap } from "@/lib/useFocusTrap"
-import { Plus, Edit3, Trash2, X, Loader2, GripVertical, Search, Check, ArrowUpDown } from "lucide-react"
+import { Plus, Edit3, Trash2, X, GripVertical, Search, Check, ArrowUpDown } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
 import type { Category, Product } from "@/lib/types"
 import { ConfirmDialog } from "./ConfirmDialog"
 import { UploadDropzone } from "./UploadDropzone"
 import { slugify } from "@/lib/slugify"
+import { useStore } from "@/lib/store"
+import { adminT } from "@/lib/admin-translations"
 
 interface Props {
   categories: Category[]
@@ -17,6 +20,7 @@ interface Props {
 }
 
 export function CategoriesSection({ categories, products, token, showToast, onRefresh }: Props) {
+  const { lang } = useStore(); const t = adminT[lang]
   const [editCategory, setEditCategory] = useState<Category | null>(null)
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -25,6 +29,7 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [addSearch, setAddSearch] = useState("")
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set())
+  const [addingSaving, setAddingSaving] = useState(false)
   const [dragItem, setDragItem] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [productOrder, setProductOrder] = useState<Record<string, number>>({})
@@ -70,8 +75,8 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
         setEditCategory(null)
         showToast("success", exists ? "Category updated" : "Category created")
         onRefresh()
-      } else { const err = await res.json(); showToast("error", err.error || "Failed to save") }
-    } catch { showToast("error", "Network error") }
+      } else { const err = await res.json(); showToast("error", err.error || t.failedToSave) }
+    } catch { showToast("error", t.networkError) }
     setSaving(false)
   }
 
@@ -105,6 +110,7 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
   async function handleAddToCategory(catId: string) {
     const ids = Array.from(addingIds)
     if (ids.length === 0) return
+    setAddingSaving(true)
     try {
       await moveProducts(catId, ids)
       showToast("success", `${ids.length} product(s) added`)
@@ -112,17 +118,20 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
       setShowAddModal(false)
       onRefresh()
     } catch { showToast("error", "Failed to add products") }
+    setAddingSaving(false)
   }
 
   async function handleRemoveFromCategory() {
     const ids = Array.from(selectedIds)
     if (ids.length === 0) return
+    setAddingSaving(true)
     try {
       await moveProducts("all", ids)
       showToast("success", `${ids.length} product(s) removed`)
       setSelectedIds(new Set())
       onRefresh()
     } catch { showToast("error", "Failed to remove products") }
+    setAddingSaving(false)
   }
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -184,9 +193,9 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base sm:text-lg font-bold">Categories ({categories.length})</h2>
+        <h2 className="text-base sm:text-lg font-bold">{t.categories} ({categories.length})</h2>
         <button onClick={newCategory} className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm" style={{ background: "var(--accent)", color: "#fff" }}>
-          <Plus size={14} /> Add
+          <Plus size={14} /> {t.add}
         </button>
       </div>
 
@@ -201,43 +210,43 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
                 </button>
                 <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style={{ background: "var(--surface-2)" }}>
-                  {c.image_url ? <img src={c.image_url} className="w-full h-full object-cover" onError={e => (e.target as HTMLImageElement).style.display = "none"} alt="" /> : null} {/* eslint-disable-line @next/next/no-img-element */}
+                  {c.image_url ? <img src={c.image_url} className="w-full h-full object-cover" onError={e => (e.target as HTMLImageElement).style.display = "none"} alt="" loading="lazy" /> : null} {/* eslint-disable-line @next/next/no-img-element */}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{c.name_en}</p>
                   <div className="flex items-center gap-2 text-[10px]" style={{ color: "var(--text-muted)" }}>
                     <span>{c.name_ar}</span>
                     <span>·</span>
-                    <span>Slug: {slugify(c.name_en)}</span>
+                    <span>{t.categorySlug}: {slugify(c.name_en)}</span>
                     <span>·</span>
-                    <span>{items.length} products</span>
+                    <span>{items.length} {t.productsIn}</span>
                   </div>
                 </div>
                 <button onClick={() => { setExpandedCat(c.id); setShowAddModal(true) }} className="p-1.5 rounded text-xs flex items-center gap-1" style={{ color: "var(--accent)" }}>
                   <Plus size={12} /> Add
                 </button>
-                <button onClick={() => setEditCategory(c)} className="p-1.5 rounded" style={{ color: "var(--text-muted)" }} aria-label="Edit category"><Edit3 size={13} /></button>
-                <button onClick={() => setConfirmDelete(c.id)} className="p-1.5 rounded" style={{ color: "var(--text-muted)" }} aria-label="Delete category"><Trash2 size={13} /></button>
+                <button onClick={() => setEditCategory(c)} className="p-1.5 rounded" style={{ color: "var(--text-muted)" }} aria-label={t.editCategory}><Edit3 size={13} /></button>
+                <button onClick={() => setConfirmDelete(c.id)} className="p-1.5 rounded" style={{ color: "var(--text-muted)" }} aria-label={t.deleteCategory}><Trash2 size={13} /></button>
               </div>
 
               {/* Expanded product list */}
               {expanded && (
                 <div className="ml-6 mt-1 rounded-lg overflow-hidden" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                   <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: "1px solid var(--border)" }}>
-                    <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>{items.length} product(s)</span>
+                    <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>{items.length} {t.productsIn}</span>
                     <div className="flex items-center gap-2">
                       <button onClick={() => setShowAddModal(true)} className="text-xs px-2 py-1 rounded flex items-center gap-1" style={{ color: "var(--accent)" }}>
-                        <Plus size={11} /> Add
+                        <Plus size={11} /> {t.add}
                       </button>
                       {selectedIds.size > 0 && (
-                        <button onClick={() => handleRemoveFromCategory()} className="text-xs px-2 py-1 rounded flex items-center gap-1" style={{ color: "#EF4444" }}>
-                          <X size={11} /> Remove ({selectedIds.size})
+                        <button onClick={() => handleRemoveFromCategory()} disabled={addingSaving} className="text-xs px-2 py-1 rounded flex items-center gap-1" style={{ color: "#EF4444", opacity: addingSaving ? 0.5 : 1 }}>
+                          {addingSaving ? <Spinner size={11} /> : <X size={11} />} {t.remove} ({selectedIds.size})
                         </button>
                       )}
                     </div>
                   </div>
                   {items.length === 0 ? (
-                    <p className="text-xs text-center py-6" style={{ color: "var(--text-muted)" }}>No products in this category</p>
+                    <p className="text-xs text-center py-6" style={{ color: "var(--text-muted)" }}>{t.noProducts}</p>
                   ) : (
                     <div className="max-h-96 overflow-y-auto">
                       {items.map(p => {
@@ -259,7 +268,7 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
                               <GripVertical size={13} />
                             </div>
                             <div className="w-7 h-7 rounded overflow-hidden flex-shrink-0" style={{ background: "var(--surface)" }}>
-                              {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full flex items-center justify-center text-[10px]" style={{ color: "var(--text-muted)" }}>{nameEn.charAt(0)}</div>} {/* eslint-disable-line @next/next/no-img-element */}
+                              {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-[10px]" style={{ color: "var(--text-muted)" }}>{nameEn.charAt(0)}</div>} {/* eslint-disable-line @next/next/no-img-element */}
                             </div>
                             <span className="text-xs flex-1 truncate">{nameEn}</span>
                             <input type="checkbox" checked={selectedIds.has(p.id)}
@@ -285,7 +294,7 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
       {uncategorized.length > 0 && (
         <div className="mt-4 p-3 rounded-lg" style={{ background: "var(--surface)", border: "1px dashed var(--border)" }}>
           <p className="text-xs font-medium flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
-            <ArrowUpDown size={12} /> Uncategorized ({uncategorized.length})
+            <ArrowUpDown size={12} /> {t.uncategorized} ({uncategorized.length})
           </p>
         </div>
       )}
@@ -293,35 +302,35 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
       {/* Category edit modal */}
       {editCategory && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={() => !saving && setEditCategory(null)} onKeyDown={e => { if (e.key === "Escape" && !saving) setEditCategory(null) }} role="dialog" aria-modal="true" tabIndex={-1}>
+          onClick={() => !saving && !addingSaving && setEditCategory(null)} onKeyDown={e => { if (e.key === "Escape" && !saving && !addingSaving) setEditCategory(null) }} role="dialog" aria-modal="true" tabIndex={-1}>
           <div ref={catEditTrapRef} className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-4 sm:p-6" style={{ background: "var(--surface)" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold">{categories.find(c => c.id === editCategory.id) ? "Edit Category" : "Add Category"}</h3>
-              <button onClick={() => !saving && setEditCategory(null)} className="p-1 rounded" style={{ color: "var(--text-muted)" }} aria-label="Close"><X size={16} /></button>
+              <h3 className="text-base font-bold">{categories.find(c => c.id === editCategory.id) ? t.editCategory : t.addCategory}</h3>
+              <button onClick={() => !saving && setEditCategory(null)} className="p-1 rounded" style={{ color: "var(--text-muted)" }} aria-label={t.cancel}><X size={16} /></button>
             </div>
             <div className="space-y-3">
-              <input placeholder="Category ID *" value={editCategory.id} onChange={e => setEditCategory({ ...editCategory, id: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Category ID" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              <input placeholder={t.categoryId} value={editCategory.id} onChange={e => setEditCategory({ ...editCategory, id: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.categoryId} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               {editCategory.name_en && (
-                <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Slug: /category/{slugify(editCategory.name_en)}</p>
+                <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{t.categorySlug}: /category/{slugify(editCategory.name_en)}</p>
               )}
               <div className="grid grid-cols-2 gap-2">
-                <input placeholder="Name (EN) *" value={editCategory.name_en} onChange={e => setEditCategory({ ...editCategory, name_en: e.target.value })}
-                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Category name English" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                <input placeholder="Name (AR) *" value={editCategory.name_ar} onChange={e => setEditCategory({ ...editCategory, name_ar: e.target.value })}
-                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Category name Arabic" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.nameEn} value={editCategory.name_en} onChange={e => setEditCategory({ ...editCategory, name_en: e.target.value })}
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.nameEn} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.nameAr} value={editCategory.name_ar} onChange={e => setEditCategory({ ...editCategory, name_ar: e.target.value })}
+                  className="px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.nameAr} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
               <div className="space-y-2">
                 <UploadDropzone currentUrl={editCategory.image_url || ""} onUpload={(url) => setEditCategory({...editCategory, image_url: url})} token={token} />
-                <input placeholder="Image URL" value={editCategory.image_url || ""} onChange={e => setEditCategory({ ...editCategory, image_url: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" aria-label="Category image URL" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                <input placeholder={t.imageUrl} value={editCategory.image_url || ""} onChange={e => setEditCategory({ ...editCategory, image_url: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" aria-label={t.imageUrl} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               </div>
             </div>
             <div className="flex gap-3 mt-5">
-              <button onClick={() => !saving && setEditCategory(null)} className="flex-1 py-3 rounded-lg text-sm" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button onClick={() => !saving && setEditCategory(null)} className="flex-1 py-3 rounded-lg text-sm" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>{t.cancel}</button>
               <button onClick={saveCategory} disabled={saving} className="flex-1 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5" style={{ background: "var(--accent)", color: "#fff", opacity: saving ? 0.7 : 1 }}>
-                {saving && <Loader2 size={14} className="animate-spin" />}
-                {saving ? "Saving..." : "Save"}
+                {saving && <Spinner size={14} />}
+                {saving ? t.saving : t.save}
               </button>
             </div>
           </div>
@@ -334,13 +343,13 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
           onClick={() => { setShowAddModal(false); setAddingIds(new Set()) }} onKeyDown={e => { if (e.key === "Escape") { setShowAddModal(false); setAddingIds(new Set()) } }} role="dialog" aria-modal="true" tabIndex={-1}>
           <div ref={addProductsTrapRef} className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[80vh] flex flex-col p-4 sm:p-6" style={{ background: "var(--surface)" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-bold">Add Products</h3>
-              <button onClick={() => { setShowAddModal(false); setAddingIds(new Set()) }} className="p-1 rounded" style={{ color: "var(--text-muted)" }} aria-label="Close"><X size={16} /></button>
+              <h3 className="text-base font-bold">{t.addProducts}</h3>
+              <button onClick={() => { setShowAddModal(false); setAddingIds(new Set()) }} className="p-1 rounded" style={{ color: "var(--text-muted)" }} aria-label={t.cancel}><X size={16} /></button>
             </div>
             <div className="relative mb-3">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-              <input value={addSearch} onChange={e => setAddSearch(e.target.value)} placeholder="Search products..."
-                className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none" style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              <input value={addSearch} onChange={e => setAddSearch(e.target.value)} placeholder={t.searchProducts}
+                className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none" aria-label={t.searchProducts} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             </div>
             <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
               {(() => {
@@ -350,14 +359,14 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
                   p.name_ar.toLowerCase().includes(addSearch.toLowerCase())
                 ) : notInCat
                 if (searched.length === 0) {
-                  return <p className="text-xs text-center py-8" style={{ color: "var(--text-muted)" }}>No products to add</p>
+                  return <p className="text-xs text-center py-8" style={{ color: "var(--text-muted)" }}>{t.noProductsToAdd}</p>
                 }
                 return searched.map(p => (
                   <label key={p.id}
                     className="flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer transition-colors"
                     style={{ background: addingIds.has(p.id) ? "var(--surface-3)" : "transparent" }}>
                     <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0" style={{ background: "var(--surface-2)" }}>
-                      {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full flex items-center justify-center text-[10px]" style={{ color: "var(--text-muted)" }}>{p.name_en.charAt(0)}</div>} {/* eslint-disable-line @next/next/no-img-element */}
+                      {p.image_url ? <img src={p.image_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-[10px]" style={{ color: "var(--text-muted)" }}>{p.name_en.charAt(0)}</div>} {/* eslint-disable-line @next/next/no-img-element */}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{p.name_en}</p>
@@ -375,12 +384,12 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
               })()}
             </div>
             <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
-              <span className="text-xs" style={{ color: "var(--text-muted)" }}>{addingIds.size} selected</span>
+              <span className="text-xs" style={{ color: "var(--text-muted)" }}>{addingIds.size} {t.selected}</span>
               <div className="flex gap-2">
-                <button onClick={() => { setShowAddModal(false); setAddingIds(new Set()) }} className="px-4 py-2 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>Cancel</button>
-                <button onClick={() => handleAddToCategory(expandedCat)} disabled={addingIds.size === 0}
-                  className="px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-1" style={{ background: "var(--accent)", color: "#fff", opacity: addingIds.size === 0 ? 0.5 : 1 }}>
-                  <Check size={12} /> Add ({addingIds.size})
+                <button onClick={() => { setShowAddModal(false); setAddingIds(new Set()) }} className="px-4 py-2 rounded-lg text-xs" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>{t.cancel}</button>
+                <button onClick={() => handleAddToCategory(expandedCat)} disabled={addingIds.size === 0 || addingSaving}
+                  className="px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-1" style={{ background: "var(--accent)", color: "#fff", opacity: addingIds.size === 0 || addingSaving ? 0.5 : 1 }}>
+                  {addingSaving ? <Spinner size={12} /> : <Check size={12} />} {t.add} ({addingIds.size})
                 </button>
               </div>
             </div>
@@ -391,9 +400,9 @@ export function CategoriesSection({ categories, products, token, showToast, onRe
       {/* Delete confirmation */}
       <ConfirmDialog
         open={!!confirmDelete}
-        title="Delete Category"
-        message="Products in this category will become uncategorized."
-        confirmLabel="Delete"
+        title={t.deleteCategory}
+        message={t.deleteCategoryWarn}
+        confirmLabel={t.deleteDefault}
         onConfirm={() => confirmDelete && deleteCategory(confirmDelete)}
         onCancel={() => setConfirmDelete(null)}
       />

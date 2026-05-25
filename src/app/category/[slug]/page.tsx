@@ -6,6 +6,13 @@ import type { Product, Category } from "@/lib/types"
 import { notFound } from "next/navigation"
 import { slugify } from "@/lib/slugify"
 
+export const revalidate = 3600
+
+export async function generateStaticParams() {
+  const categories = await fetchCategories()
+  return categories.map(c => ({ slug: slugify(c.name_en) || c.id }))
+}
+
 function findCategory(categories: Category[], slug: string): Category | undefined {
   return categories.find(c => c.id === slug) || categories.find(c => slugify(c.name_en) === slug)
 }

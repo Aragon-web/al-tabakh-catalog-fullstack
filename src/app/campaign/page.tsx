@@ -1,6 +1,9 @@
 import type { Metadata } from "next"
 import { StoreProvider } from "@/lib/store"
 import { CampaignClient } from "./campaign-client"
+import { fetchProducts, fetchCategories } from "@/lib/supabase"
+
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "Special Offers",
@@ -8,9 +11,10 @@ export const metadata: Metadata = {
   openGraph: { title: "Special Offers | Al-Tabakh", description: "Discounted products available for a limited time." },
 }
 
-export default function CampaignPage() {
+export default async function CampaignPage() {
+  const [products, categories] = await Promise.all([fetchProducts(), fetchCategories()])
   return (
-    <StoreProvider products={[]} categories={[]}>
+    <StoreProvider products={products} categories={categories}>
       <CampaignClient />
     </StoreProvider>
   )

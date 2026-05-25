@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useStore } from "@/lib/store"
-import { Search, Package, ChevronDown, Loader2 } from "lucide-react"
+import { Search, Package, ChevronDown } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
 import { useSiteConfig } from "@/lib/theme-provider"
 import type { Order } from "@/lib/types"
 
@@ -62,7 +63,7 @@ export function OrderTracker() {
         <button type="submit" disabled={loading || !orderId.trim()}
           className="px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-1.5"
           style={{ background: "var(--accent)", color: "#fff", opacity: loading ? 0.7 : 1 }}>
-          {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+          {loading ? <Spinner size={14} /> : <Search size={14} />}
           {t.search}
         </button>
       </form>

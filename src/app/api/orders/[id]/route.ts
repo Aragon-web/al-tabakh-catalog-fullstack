@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import { verifyAuth } from "@/lib/api-auth"
+import { logAdminAction } from "@/lib/audit"
+import { sendOrderStatusNotification } from "@/lib/email"
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = verifyAuth(req)
@@ -20,6 +22,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { data, error } = await client.from("orders").update({ status }).eq("id", id).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     if (!data) return NextResponse.json({ error: "Order not found" }, { status: 404 })
+
+    logAdminAction("update_status", "order", id, { status })
+    sendOrderStatusNotification(data.customer_email || "", data.customer_name || "", status, id)
 
     return NextResponse.json(data)
   } catch {

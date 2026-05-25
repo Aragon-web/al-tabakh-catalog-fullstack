@@ -4,6 +4,8 @@ import { fetchProducts, fetchCategories } from "@/lib/supabase"
 import { LocationsClient } from "./locations-wrapper"
 import type { Product, Category } from "@/lib/types"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Our Locations | Al-Tabakh",
   description: "Find Al-Tabakh premium food product vendors across Iraq — interactive map with store locations in 17 cities.",

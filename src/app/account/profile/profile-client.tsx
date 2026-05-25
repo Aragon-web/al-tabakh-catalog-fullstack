@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Header } from "@/components/Header"
+import { useDelayedLoading } from "@/lib/useDelayedLoading"
 import { Footer } from "@/components/Footer"
 import { useStore } from "@/lib/store"
 import { STORAGE_KEYS } from "@/lib/constants"
 import { LogOut, Package, Award, ChevronDown, Pencil, Check, X } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
 import type { Order, LoyaltyTransaction } from "@/lib/types"
 
 export function ProfileClient() {
@@ -15,6 +17,7 @@ export function ProfileClient() {
   const [orders, setOrders] = useState<Order[]>([])
   const [txns, setTxns] = useState<LoyaltyTransaction[]>([])
   const [loading, setLoading] = useState(true)
+  const showLoading = useDelayedLoading(loading, 300)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState("")
@@ -74,7 +77,7 @@ export function ProfileClient() {
     ar: { orders: "طلباتي", loyalty: "نقاط الولاء", points: "نقطة", history: "السجل", profile: "الملف الشخصي", logoutLabel: "تسجيل الخروج", noOrders: "لا توجد طلبات بعد", empty: "لا توجد معاملات بعد", edit: "تعديل", save: "حفظ", cancel: "إلغاء", name: "الاسم", phone: "الهاتف", saving: "جاري الحفظ..." },
   }[lang]
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} /></div>
+  if (showLoading) return <div className="min-h-screen flex items-center justify-center"><Spinner size={24} /></div>
 
   return (
     <><Header />

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react"
+import { ProductGridSkeleton } from "@/components/Skeleton"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { ProductCard } from "@/components/ProductCard"
@@ -155,7 +156,7 @@ export function CategoryClient({ slug }: { slug: string }) {
             {lang === "en" ? "Back to All Products" : "العودة إلى جميع المنتجات"}
           </Link>
 
-          <Suspense fallback={null}>
+          <Suspense fallback={<ProductGridSkeleton count={8} />}>
             <ProductGrid filtered={filtered} />
           </Suspense>
         </div>

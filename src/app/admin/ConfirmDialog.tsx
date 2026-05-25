@@ -1,10 +1,13 @@
 "use client"
 
 import { AlertTriangle, X } from "lucide-react"
+import { Spinner } from "@/components/Spinner"
 import { useFocusTrap } from "@/lib/useFocusTrap"
+import { useStore } from "@/lib/store"
+import { adminT } from "@/lib/admin-translations"
 
 export function ConfirmDialog({
-  open, title, message, confirmLabel = "Delete", cancelLabel = "Cancel", danger = true, onConfirm, onCancel, loading,
+  open, title, message, confirmLabel, cancelLabel, danger = true, onConfirm, onCancel, loading,
 }: {
   open: boolean
   title: string
@@ -16,6 +19,9 @@ export function ConfirmDialog({
   onCancel: () => void
   loading?: boolean
 }) {
+  const { lang } = useStore(); const t = adminT[lang]
+  const cl = confirmLabel || t.deleteDefault
+  const cal = cancelLabel || t.cancelDefault
   const trapRef = useFocusTrap(open)
   if (!open) return null
 
@@ -35,11 +41,11 @@ export function ConfirmDialog({
           <button onClick={onCancel} className="ml-auto p-1 rounded" style={{ color: "var(--text-muted)" }} aria-label="Close dialog"><X size={16} /></button>
         </div>
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 py-2.5 rounded-lg text-sm" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>{cancelLabel}</button>
+          <button onClick={onCancel} className="flex-1 py-2.5 rounded-lg text-sm" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>{cal}</button>
           <button onClick={onConfirm} disabled={loading}
             className="flex-1 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5"
             style={{ background: danger ? "#DC2626" : "var(--accent)", color: "#fff", opacity: loading ? 0.7 : 1 }}>
-            {loading ? "..." : confirmLabel}
+            {loading ? <><Spinner size={14} /> {cl}</> : cl}
           </button>
         </div>
       </div>

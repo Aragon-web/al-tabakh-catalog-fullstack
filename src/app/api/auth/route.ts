@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
+import { verifyOrigin } from "@/lib/csrf"
 
 function makeToken(secret: string): string {
   const sessionId = crypto.randomUUID()
@@ -8,6 +9,8 @@ function makeToken(secret: string): string {
 }
 
 export async function POST(req: Request) {
+  const csrf = verifyOrigin(req)
+  if (csrf !== true) return csrf
   try {
     const { password } = await req.json()
     if (!password || typeof password !== "string") {

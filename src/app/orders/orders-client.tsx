@@ -6,20 +6,18 @@ import { Footer } from "@/components/Footer"
 import { useStore } from "@/lib/store"
 import Link from "next/link"
 import type { Order } from "@/lib/types"
+import { Home } from "lucide-react"
 
 export function OrdersClient() {
   const { lang } = useStore()
   const [orders, setOrders] = useState<Order[]>([])
-  const [, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), []) // eslint-disable-line react-hooks/set-state-in-effect
 
   useEffect(() => {
     const stored = localStorage.getItem("altabakh_orders")
     if (stored) {
-      try { setOrders(JSON.parse(stored)); setLoading(false) } catch { setLoading(false) } // eslint-disable-line react-hooks/set-state-in-effect
-    } else {
-      setLoading(false)
+      try { setOrders(JSON.parse(stored)) } catch {} // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [])
 
@@ -50,6 +48,11 @@ export function OrdersClient() {
     <>
       <Header />
       <main className="flex-1 max-w-4xl mx-auto px-3 sm:px-4 pt-28 sm:pt-32 pb-8">
+        <nav className="flex items-center gap-1.5 text-xs sm:text-sm mb-4" style={{ color: "var(--text-muted)" }}>
+          <Link href="/" className="hover:underline flex items-center gap-1"><Home size={12} />{lang === "en" ? "Home" : "الرئيسية"}</Link>
+          <span>/</span>
+          <span style={{ color: "var(--text-secondary)" }}>{t.title}</span>
+        </nav>
         <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{t.title}</h1>
 
         {orders.length === 0 ? (

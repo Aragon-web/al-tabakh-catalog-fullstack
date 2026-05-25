@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import { verifyAuth } from "@/lib/api-auth"
+import { logAdminAction } from "@/lib/audit"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 async function getProductOrder(client: SupabaseClient) {
@@ -31,7 +32,6 @@ export async function PATCH(req: Request) {
         .in("id", product_ids)
       if (error) throw error
 
-      // Remove moved products from ordering (they get sort_order 0 / end of list)
       const order = await getProductOrder(client)
       let changed = false
       for (const id of product_ids) {
@@ -39,6 +39,7 @@ export async function PATCH(req: Request) {
       }
       if (changed) await setProductOrder(client, order)
 
+      logAdminAction("batch_move", "product", product_ids.join(","), { category_id, count: product_ids.length })
       return NextResponse.json({ success: true, moved: product_ids.length })
     }
 
@@ -51,6 +52,7 @@ export async function PATCH(req: Request) {
         order[item.id] = item.sort_order
       }
       await setProductOrder(client, order)
+      logAdminAction("batch_reorder", "product", "", { count: reorder.length })
       return NextResponse.json({ success: true, reordered: reorder.length })
     }
 

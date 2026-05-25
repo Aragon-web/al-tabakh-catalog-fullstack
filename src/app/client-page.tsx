@@ -14,6 +14,7 @@ import { useStore } from "@/lib/store"
 import { useSiteConfig } from "@/lib/theme-provider"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useMemo, Suspense } from "react"
+import { ProductGridSkeleton } from "@/components/Skeleton"
 import { PER_PAGE } from "@/lib/constants"
 
 function ProductGrid() {
@@ -151,7 +152,7 @@ export function ClientPage() {
         <div className="wave-divider max-w-7xl mx-auto" />
 
         <section id="products" className="mt-10 sm:mt-14 pb-16">
-          <Suspense fallback={null}>
+          <Suspense fallback={<ProductGridSkeleton count={8} />}>
             <ProductGrid />
           </Suspense>
         </section>

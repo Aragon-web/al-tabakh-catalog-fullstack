@@ -43,7 +43,7 @@ export function ProductCard({ product }: { product: Product }) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center p-6" style={{ background: "var(--surface-2)" }}>
-              <img src="/placeholder-product.svg" alt="" className="w-full h-full object-contain opacity-40" /> {/* eslint-disable-line @next/next/no-img-element */}
+              <img src="/placeholder-product.svg" alt="" loading="lazy" className="w-full h-full object-contain opacity-40" /> {/* eslint-disable-line @next/next/no-img-element */}
             </div>
           )}
           <div className="absolute inset-0 bg-black/0 sm:group-hover:bg-black/20 transition-colors" />

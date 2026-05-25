@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import { verifyAuth } from "@/lib/api-auth"
+import { logAdminAction } from "@/lib/audit"
 
 export async function GET(req: Request) {
   const auth = verifyAuth(req)
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
     })
     if (txnErr) console.error("Failed to record loyalty transaction:", txnErr.message)
 
+    logAdminAction("adjust_loyalty", "customer", String(customer_id), { points, reason })
     return NextResponse.json({ success: true, new_points: newPoints })
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })

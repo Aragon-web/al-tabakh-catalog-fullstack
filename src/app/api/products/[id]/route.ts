@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase"
 import { verifyAuth } from "@/lib/api-auth"
+import { logAdminAction } from "@/lib/audit"
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = verifyAuth(req)
@@ -17,7 +18,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       console.error("PUT /api/products error:", error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    return NextResponse.json(data)
+    logAdminAction("update", "product", id, { changes: body })
   } catch (e) {
     console.error("PUT /api/products exception:", e)
     return NextResponse.json({ error: "Internal error" }, { status: 500 })
@@ -36,7 +37,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       console.error("DELETE /api/products error:", error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    return NextResponse.json({ success: true })
+    logAdminAction("delete", "product", id, {})
   } catch (e) {
     console.error("DELETE /api/products exception:", e)
     return NextResponse.json({ error: "Internal error" }, { status: 500 })

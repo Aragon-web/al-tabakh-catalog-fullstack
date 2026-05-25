@@ -32,8 +32,8 @@ export function Header() {
   }, [catOpen])
 
   const t = {
-    en: { search: "Search products...", cart: "Cart", orders: "Orders", categories: "Categories", faq: "FAQ", about: "About", sitemap: "Sitemap", contact: "Contact", campaign: "Campaigns", account: "My Account", locations: "Locations" },
-    ar: { search: "ابحث عن المنتجات...", cart: "السلة", orders: "الطلبات", categories: "الأقسام", faq: "الأسئلة الشائعة", about: "من نحن", sitemap: "خريطة الموقع", contact: "اتصل بنا", campaign: "العروض", account: "حسابي", locations: "الفروع" },
+    en: { search: "Search products...", cart: "Cart", orders: "Orders", categories: "Categories", faq: "FAQ", about: "About", sitemap: "Sitemap", contact: "Contact", campaign: "Campaigns", account: "My Account", locations: "Locations", recipes: "Recipes" },
+    ar: { search: "ابحث عن المنتجات...", cart: "السلة", orders: "الطلبات", categories: "الأقسام", faq: "الأسئلة الشائعة", about: "من نحن", sitemap: "خريطة الموقع", contact: "اتصل بنا", campaign: "العروض", account: "حسابي", locations: "الفروع", recipes: "وصفات" },
   }[lang]
 
   return (
@@ -120,6 +120,9 @@ export function Header() {
             <Link href="/contact" className="px-2.5 py-1.5 text-sm whitespace-nowrap rounded-lg transition-colors hidden lg:inline-flex items-center min-touch" style={{ color: "var(--text-secondary)" }}>
               {t.contact}
             </Link>
+            <Link href="/recipes" className="px-2.5 py-1.5 text-sm whitespace-nowrap rounded-lg transition-colors hidden lg:inline-flex items-center min-touch" style={{ color: "var(--text-secondary)" }}>
+              {t.recipes}
+            </Link>
             <Link href="/campaign" className="px-2.5 py-1.5 text-sm whitespace-nowrap rounded-lg transition-colors hidden lg:inline-flex items-center min-touch" style={{ color: "var(--text-secondary)" }}>
               {t.campaign}
             </Link>
@@ -189,6 +192,7 @@ export function Header() {
             </button>
             <Link href="/orders" className="py-2.5 text-sm min-touch flex items-center" style={{ color: "var(--text-secondary)" }} onClick={() => setMobileMenu(false)}>{t.orders}</Link>
             <Link href="/locations" className="py-2.5 text-sm min-touch flex items-center" style={{ color: "var(--text-secondary)" }} onClick={() => setMobileMenu(false)}>{t.locations}</Link>
+            <Link href="/recipes" className="py-2.5 text-sm min-touch flex items-center" style={{ color: "var(--text-secondary)" }} onClick={() => setMobileMenu(false)}>{t.recipes}</Link>
             <Link href="/campaign" className="py-2.5 text-sm min-touch flex items-center" style={{ color: "var(--text-secondary)" }} onClick={() => setMobileMenu(false)}>{t.campaign}</Link>
             <Link href="/contact" className="py-2.5 text-sm min-touch flex items-center" style={{ color: "var(--text-secondary)" }} onClick={() => setMobileMenu(false)}>{t.contact}</Link>
             <Link href="/faq" className="py-2.5 text-sm min-touch flex items-center" style={{ color: "var(--text-secondary)" }} onClick={() => setMobileMenu(false)}>{t.faq}</Link>
