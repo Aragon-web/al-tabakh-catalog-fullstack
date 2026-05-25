@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     let filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
 
     if (ext !== "gif" && ext !== "webp") {
-      uploadBuf = await sharp(buf).webp({ quality: 80 }).toBuffer()
+      uploadBuf = await sharp(buf as Buffer).webp({ quality: 80 }).toBuffer()
       contentType = "image/webp"
       filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`
     }
