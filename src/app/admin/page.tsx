@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Shield, LogOut, Menu, X, AlertCircle, LayoutDashboard, Package, Tags, ShoppingCart, ArrowLeft, MessageSquare, BarChart3, Palette, FileText, MapPin, BookOpen, Languages, Eye, EyeOff, Gift } from "lucide-react"
+import { Shield, LogOut, Menu, X, AlertCircle, LayoutDashboard, Package, Tags, ShoppingCart, ArrowLeft, MessageSquare, BarChart3, Palette, FileText, MapPin, BookOpen, Languages, Eye, EyeOff, Gift, Megaphone } from "lucide-react"
 import Link from "next/link"
 import { STORAGE_KEYS } from "@/lib/constants"
 import type { Product, Category, Order } from "@/lib/types"
@@ -20,6 +20,7 @@ import { ContentSection } from "./ContentSection"
 import { LocationsSection } from "./LocationsSection"
 import { RecipesSection } from "./RecipesSection"
 import { PromoCodesSection } from "./PromoCodesSection"
+import { CampaignsSection } from "./CampaignsSection"
 import { ConfirmDialog } from "./ConfirmDialog"
 
 interface Contact {
@@ -38,6 +39,7 @@ const TABS = [
   ["appearance", Palette],
   ["content", FileText],
   ["promo", Gift],
+  ["campaigns", Megaphone],
 ] as const
 
 export default function AdminPage() {
@@ -48,7 +50,7 @@ export default function AdminPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [token, setToken] = useState("")
   const [loginError, setLoginError] = useState("")
-  const [tab, setTab] = useState<"dashboard" | "products" | "categories" | "orders" | "messages" | "loyalty" | "locations" | "recipes" | "appearance" | "content" | "promo">("dashboard")
+  const [tab, setTab] = useState<"dashboard" | "products" | "categories" | "orders" | "messages" | "loyalty" | "locations" | "recipes" | "appearance" | "content" | "promo" | "campaigns">("dashboard")
   const [mobileTabOpen, setMobileTabOpen] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
 
@@ -344,6 +346,9 @@ export default function AdminPage() {
         )}
         {!loading && tab === "promo" && (
           <PromoCodesSection token={token} showToast={showToast} />
+        )}
+        {!loading && tab === "campaigns" && (
+          <CampaignsSection token={token} showToast={showToast} />
         )}
       </div>
     </div>

@@ -29,6 +29,17 @@ export const adminT = {
     appearance: "Appearance",
     content: "Content",
     promo: "Promo Codes",
+    campaigns: "Campaigns",
+
+    // Campaigns
+    campaignTitle: "Campaign Title",
+    campaignSubtitle: "Campaign Subtitle",
+    campaignEmpty: "Empty State Text",
+    campaignBanner: "Banner Image",
+    campaignEnabled: "Campaign Enabled",
+    campaignEnabledDesc: "Show/hide the campaigns page",
+    campaignSaved: "Campaign settings saved",
+    campaignSaveFailed: "Failed to save campaign settings",
 
     // Dashboard
     statProducts: "Products",
@@ -254,6 +265,17 @@ export const adminT = {
     appearance: "المظهر",
     content: "المحتوى",
     promo: "رموز العروض",
+    campaigns: "الحملات",
+
+    // Campaigns
+    campaignTitle: "عنوان الحملة",
+    campaignSubtitle: "الوصف الفرعي للحملة",
+    campaignEmpty: "نص حالة فارغة",
+    campaignBanner: "صورة بانر",
+    campaignEnabled: "تفعيل الحملة",
+    campaignEnabledDesc: "إظهار/إخفاء صفحة الحملات",
+    campaignSaved: "تم حفظ إعدادات الحملة",
+    campaignSaveFailed: "فشل حفظ إعدادات الحملة",
 
     statProducts: "المنتجات",
     statCategories: "الأقسام",
